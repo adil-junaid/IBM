@@ -1,3 +1,4 @@
+const { indexDocument } = require("../ai/documentStore");
 const { chunkText } = require("../services/chunk.service");
 const { parseDocument } = require("../services/parser.service");
 
@@ -14,19 +15,25 @@ const uploadDocument = async (req, res) => {
     // Parse the uploaded document
     const parsedData = await parseDocument(req.file.path);
 
-// Split into chunks
-const chunks = chunkText(parsedData.text);
+    // Split into chunks
+    const chunks = chunkText(parsedData.text);
 
-return res.status(200).json({
-  success: true,
-  message: "Document processed successfully!",
-  originalName: req.file.originalname,
-  fileName: req.file.filename,
-  pages: parsedData.pages,
-  metadata: parsedData.metadata,
-  totalChunks: chunks.length,
-});
+    // Store chunks in vector store
+    const indexedChunks = await indexDocument(chunks, {
+      source: req.file.originalname,
+      pages: parsedData.pages,
+    });
 
+    return res.status(200).json({
+      success: true,
+      message: "Document indexed successfully!",
+      originalName: req.file.originalname,
+      fileName: req.file.filename,
+      pages: parsedData.pages,
+      metadata: parsedData.metadata,
+      totalChunks: chunks.length,
+      indexedChunks,
+    });
   } catch (error) {
     console.error(error);
 

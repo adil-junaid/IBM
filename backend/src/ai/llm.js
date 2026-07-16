@@ -6,4 +6,12 @@ const llm = new ChatOllama({
   temperature: 0,
 });
 
-module.exports = llm;
+async function generateAnswer(prompt) {
+  const response = await llm.invoke(prompt);
+
+  return response.content;
+}
+
+module.exports = {
+  generateAnswer,
+};

@@ -11,12 +11,13 @@ const chatWithDocument = async (req, res) => {
       });
     }
 
-    const answer = await askQuestion(question);
+    const result = await askQuestion(question);
 
-    return res.json({
-      success: true,
-      answer,
-    });
+return res.json({
+  success: true,
+  answer: result.answer,
+  sources: result.sources,
+});
 
   } catch (error) {
     console.error(error);
