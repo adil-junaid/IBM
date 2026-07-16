@@ -1,3 +1,4 @@
+const { chunkText } = require("../services/chunk.service");
 const { parseDocument } = require("../services/parser.service");
 
 const uploadDocument = async (req, res) => {
@@ -13,15 +14,18 @@ const uploadDocument = async (req, res) => {
     // Parse the uploaded document
     const parsedData = await parseDocument(req.file.path);
 
-    return res.status(200).json({
-      success: true,
-      message: "Document processed successfully!",
-      originalName: req.file.originalname,
-      fileName: req.file.filename,
-      pages: parsedData.pages,
-      metadata: parsedData.metadata,
-      text: parsedData.text,
-    });
+// Split into chunks
+const chunks = chunkText(parsedData.text);
+
+return res.status(200).json({
+  success: true,
+  message: "Document processed successfully!",
+  originalName: req.file.originalname,
+  fileName: req.file.filename,
+  pages: parsedData.pages,
+  metadata: parsedData.metadata,
+  totalChunks: chunks.length,
+});
 
   } catch (error) {
     console.error(error);
