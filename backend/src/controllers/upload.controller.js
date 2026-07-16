@@ -1,3 +1,5 @@
+const { parseDocument } = require("../services/parser.service");
+
 const uploadDocument = async (req, res) => {
   try {
     // Check if a file was uploaded
@@ -8,23 +10,25 @@ const uploadDocument = async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    // Parse the uploaded document
+    const parsedData = await parseDocument(req.file.path);
+
+    return res.status(200).json({
       success: true,
-      message: "File uploaded successfully!",
-      file: {
-        originalName: req.file.originalname,
-        fileName: req.file.filename,
-        fileType: req.file.mimetype,
-        fileSize: req.file.size,
-        path: req.file.path,
-      },
+      message: "Document processed successfully!",
+      originalName: req.file.originalname,
+      fileName: req.file.filename,
+      pages: parsedData.pages,
+      metadata: parsedData.metadata,
+      text: parsedData.text,
     });
+
   } catch (error) {
     console.error(error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Internal Server Error",
+      message: error.message,
     });
   }
 };
