@@ -1,0 +1,34 @@
+const { askQuestion } = require("../ai/rag.service");
+
+const chatWithDocument = async (req, res) => {
+  try {
+    const { question, document } = req.body;
+
+    if (!question) {
+      return res.status(400).json({
+        success: false,
+        message: "Question is required.",
+      });
+    }
+
+    const result = await askQuestion(question, document);
+
+return res.json({
+  success: true,
+  answer: result.answer,
+  sources: result.sources,
+});
+
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+module.exports = {
+  chatWithDocument,
+};
