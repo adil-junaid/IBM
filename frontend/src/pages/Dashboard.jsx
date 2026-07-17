@@ -1,17 +1,12 @@
-import UploadBox from "../components/dashboard/UploadBox";
+import DashboardLayout from "../layouts/DashboardLayout";
+import DashboardHome from "../components/dashboard/DashboardHome";
 
-function Dashboard() {
-  const handleUploadSuccess = () => {
-    console.log("Upload successful");
-  };
-
+const Dashboard = () => {
   return (
-    <div className="dashboard">
-      <h1>AI Research Assistant</h1>
-
-      <UploadBox onUploadSuccess={handleUploadSuccess} />
-    </div>
+    <DashboardLayout>
+      <DashboardHome />
+    </DashboardLayout>
   );
-}
+};
 
 export default Dashboard;
