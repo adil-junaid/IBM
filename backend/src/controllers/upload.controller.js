@@ -20,9 +20,14 @@ const uploadDocument = async (req, res) => {
 
     // Store chunks in vector store
     const indexedChunks = await indexDocument(chunks, {
-      source: req.file.originalname,
-      pages: parsedData.pages,
-    });
+  source: req.file.originalname,
+  storedName: req.file.filename,
+  pages: parsedData.pages,
+  fileSize: req.file.size,
+  fileType: req.file.mimetype,
+  uploadedAt: new Date().toISOString(),
+  metadata: parsedData.metadata,
+});
 
     return res.status(200).json({
       success: true,

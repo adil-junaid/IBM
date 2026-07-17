@@ -1,6 +1,7 @@
 const { registerDocument } = require("./documentRegistry");
 const { Document } = require("@langchain/core/documents");
 const { getVectorStore } = require("./vectorStore");
+const crypto = require("crypto");
 
 /**
  * Store document chunks in the vector store.
@@ -23,11 +24,18 @@ async function indexDocument(chunks, metadata) {
 await store.addDocuments(docs);
 
   // Register the uploaded document
-  registerDocument({
-    name: metadata.source,
-    pages: metadata.pages,
-    chunks: docs.length,
-  });
+  // Register the uploaded document
+registerDocument({
+  id: crypto.randomUUID(),
+  name: metadata.source,
+  storedName: metadata.storedName,
+  pages: metadata.pages,
+  chunks: docs.length,
+  fileSize: metadata.fileSize,
+  fileType: metadata.fileType,
+  uploadedAt: metadata.uploadedAt,
+  metadata: metadata.metadata,
+});
 
   return docs.length;
 }
