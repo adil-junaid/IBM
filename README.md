@@ -1,106 +1,122 @@
-# 🤖 AI Research Assistant - Backend
+# 🤖 AI Research Assistant
 
-The backend of the AI Research Assistant is built with **Node.js**, **Express.js**, **MongoDB Atlas**, **LangChain**, and **Ollama**. It provides APIs for document upload, processing, semantic search, and AI-powered question answering using Retrieval-Augmented Generation (RAG).
+An AI-powered Research Assistant that enables users to upload research documents, perform semantic search, and interact with their documents using Retrieval-Augmented Generation (RAG).
+
+The application combines a modern React frontend with a Node.js backend, MongoDB Atlas for document metadata, LangChain for retrieval, and Ollama for running local Large Language Models.
 
 ---
 
-# 🚀 Features
+## ✨ Features
 
-- 📄 Upload PDF and DOCX research documents
-- ✂️ Automatic document parsing and text chunking
-- 🧠 Generate embeddings using Ollama
+### Frontend
+- 🎨 Modern dashboard with sidebar and top navigation
+- 📄 Upload research documents
+- 📚 View uploaded documents
+- 💬 AI chat interface
+- 📱 Responsive UI built with Tailwind CSS
+
+### Backend
+- 📄 PDF and DOCX document upload
+- ✂️ Automatic document parsing and chunking
+- 🧠 Embedding generation using Ollama
 - 🔍 Semantic document retrieval using LangChain
-- 💬 AI-powered question answering with context-aware responses
-- 📚 Support for multiple uploaded documents
-- 🗂️ Store document metadata in MongoDB Atlas
-- 🗑️ Delete uploaded documents
-- 🌐 RESTful API architecture
-- ⚙️ Environment-based configuration using dotenv
+- 💬 Context-aware AI responses (RAG)
+- 🗂️ MongoDB Atlas metadata storage
+- 🗑️ Document deletion
+- 🌐 RESTful API
 
 ---
 
-# 🛠️ Tech Stack
+# 🛠 Tech Stack
 
-| Technology | Purpose |
-|------------|---------|
-| Node.js | Backend Runtime |
-| Express.js | REST API Framework |
-| MongoDB Atlas | Document Metadata Storage |
-| Mongoose | MongoDB ODM |
-| LangChain | RAG Pipeline |
-| Ollama | Local LLM & Embeddings |
-| Multer | File Upload Handling |
-| pdf-parse | PDF Text Extraction |
-| Mammoth | DOCX Text Extraction |
-| dotenv | Environment Variable Management |
+## Frontend
+
+- React
+- Vite
+- React Router
+- Tailwind CSS v4
+- Axios
+- React Icons
+
+## Backend
+
+- Node.js
+- Express.js
+- MongoDB Atlas
+- Mongoose
+- LangChain
+- Ollama
+- Multer
+- pdf-parse
+- Mammoth
+- dotenv
 
 ---
 
-# 📁 Project Structure
+# 📂 Project Structure
 
-```
-backend/
+```text
+AI-Research-Assistant/
 │
-├── src/
-│   ├── config/
-│   │   └── db.js
+├── frontend/
+│   ├── src/
+│   │   ├── api/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   │   ├── common/
+│   │   │   ├── dashboard/
+│   │   │   ├── landing/
+│   │   │   └── layout/
+│   │   ├── layouts/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── hooks/
+│   │   ├── utils/
+│   │   ├── App.jsx
+│   │   └── main.jsx
 │   │
-│   ├── controllers/
-│   │   ├── uploadController.js
-│   │   ├── chatController.js
-│   │   └── documentController.js
-│   │
-│   ├── models/
-│   │   └── Document.js
-│   │
-│   ├── routes/
-│   │   ├── uploadRoutes.js
-│   │   ├── chatRoutes.js
-│   │   └── documentRoutes.js
-│   │
-│   ├── services/
-│   │   ├── embeddingService.js
-│   │   ├── vectorStore.js
-│   │   └── documentParser.js
-│   │
-│   ├── uploads/
-│   │
-│   └── server.js
+│   └── package.json
 │
-├── .env
-├── package.json
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── uploads/
+│   │   └── server.js
+│   │
+│   ├── package.json
+│   └── .env
+│
 └── README.md
 ```
 
-> Update the structure if your folder names differ.
+---
+
+# 🚀 Getting Started
+
+## Clone the Repository
+
+```bash
+git clone https://github.com/<your-username>/<repository-name>.git
+```
+
+```bash
+cd AI-Research-Assistant
+```
 
 ---
 
-# ⚙️ Installation
-
-Clone the repository
-
-```bash
-git clone https://github.com/adil-junaid/IBM/tree/backend-dev
-```
-
-Navigate to backend
+# ⚙️ Backend Setup
 
 ```bash
 cd backend
-```
-
-Install dependencies
-
-```bash
 npm install
 ```
 
----
-
-# 🔐 Environment Variables
-
-Create a `.env` file inside the backend folder.
+Create a `.env` file:
 
 ```env
 PORT=5001
@@ -114,23 +130,40 @@ MODEL_NAME=llama3.2
 EMBEDDING_MODEL=nomic-embed-text
 ```
 
+Run the backend:
+
+```bash
+npm run dev
+```
+
 ---
 
-# 🗄️ MongoDB Setup
+# 💻 Frontend Setup
 
-This project uses **MongoDB Atlas** to store document metadata.
+```bash
+cd frontend
+npm install
+```
 
-Example connection string:
+Run the frontend:
 
-```text
-mongodb+srv://<username>:<password>@cluster.mongodb.net/database_name
+```bash
+npm run dev
+```
+
+The application will be available at:
+
+```
+Frontend : http://localhost:5173
+
+Backend  : http://localhost:5001
 ```
 
 ---
 
 # 🦙 Ollama Setup
 
-Install Ollama from:
+Install Ollama:
 
 https://ollama.com/
 
@@ -144,7 +177,7 @@ ollama pull llama3.2
 ollama pull nomic-embed-text
 ```
 
-Verify Ollama is running:
+Start Ollama:
 
 ```bash
 ollama serve
@@ -152,181 +185,112 @@ ollama serve
 
 ---
 
-# ▶️ Running the Backend
-
-Development mode
-
-```bash
-npm run dev
-```
-
-Production mode
-
-```bash
-npm start
-```
-
-Expected output
-
-```text
-✅ MongoDB connected successfully
-🚀 Server running on http://localhost:5001
-```
-
----
-
 # 📡 API Endpoints
 
-## Health Check
-
-```
-GET /
-```
-
-Response
-
-```json
-{
-    "success": true,
-    "message": "AI Research Assistant Backend is Running 🚀"
-}
-```
+| Method | Endpoint | Description |
+|---------|----------|-------------|
+| GET | `/` | Health Check |
+| POST | `/api/upload` | Upload document |
+| POST | `/api/chat` | Ask questions |
+| GET | `/api/documents` | List uploaded documents |
+| DELETE | `/api/documents/:id` | Delete document |
 
 ---
 
-## Upload Document
+# 🔄 Application Workflow
 
-```
-POST /api/upload
-```
-
-Accepts
-
-- PDF
-- DOCX
-
-Returns
-
-- Upload status
-- Document metadata
-
----
-
-## Chat with Documents
-
-```
-POST /api/chat
-```
-
-Request
-
-```json
-{
-    "question": "Explain the introduction section."
-}
-```
-
-Response
-
-```json
-{
-    "answer": "..."
-}
-```
-
----
-
-## Get Uploaded Documents
-
-```
-GET /api/documents
-```
-
-Returns
-
-- Uploaded document list
-- Metadata
-
----
-
-## Delete Document
-
-```
-DELETE /api/documents/:id
-```
-
-Deletes
-
-- MongoDB metadata
-- Associated vector data (if applicable)
-
----
-
-# 🔄 Backend Workflow
-
-```
+```text
 Upload Document
-       │
-       ▼
+      │
+      ▼
 Extract Text
-       │
-       ▼
+      │
+      ▼
 Split into Chunks
-       │
-       ▼
+      │
+      ▼
 Generate Embeddings
-       │
-       ▼
-Store Metadata (MongoDB)
-       │
-       ▼
-Store Embeddings (Memory Vector Store)
-       │
-       ▼
-User Question
-       │
-       ▼
-Semantic Retrieval
-       │
-       ▼
-LLM (Ollama)
-       │
-       ▼
-Answer
+      │
+      ▼
+Store Metadata
+      │
+      ▼
+Semantic Search
+      │
+      ▼
+Retrieve Relevant Context
+      │
+      ▼
+Generate AI Response
 ```
 
 ---
 
-# 📌 Current Implementation
+# 📌 Current Progress
 
-- ✅ PDF upload
-- ✅ DOCX upload
-- ✅ Text extraction
-- ✅ Text chunking
-- ✅ Embedding generation
-- ✅ Semantic retrieval
-- ✅ Retrieval-Augmented Generation (RAG)
-- ✅ MongoDB Atlas integration
-- ✅ Metadata storage
-- ✅ Document deletion
-- ✅ Multi-document support
+## Frontend
 
----
+- ✅ Landing Page
+- ✅ Dashboard Layout
+- ✅ Sidebar Navigation
+- ✅ Top Navigation
+- ✅ Dashboard Statistics Cards
+- 🚧 Upload Workspace
+- 🚧 AI Chat Interface
+- 🚧 Document Management UI
 
-# 🔮 Future Enhancements
+## Backend
 
-- Persistent vector database (e.g., ChromaDB, Pinecone, Weaviate)
-- User authentication and authorization
-- Chat history storage
-- Conversation memory
-- Document versioning
-- Streaming AI responses
-- Docker support
-- Unit and integration testing
-- Swagger/OpenAPI documentation
+- ✅ PDF Upload
+- ✅ DOCX Upload
+- ✅ Text Extraction
+- ✅ Chunking
+- ✅ Embedding Generation
+- ✅ LangChain Retrieval
+- ✅ MongoDB Integration
+- ✅ Document APIs
 
 ---
 
-# 👩‍💻 Author
+# 🛣️ Roadmap
 
-Developed as part of an AI Research Assistant project using Node.js, Express.js, LangChain, Ollama, and MongoDB Atlas.
+- [ ] Drag-and-drop upload
+- [ ] Live document statistics
+- [ ] Chat history
+- [ ] Conversation memory
+- [ ] Persistent vector database
+- [ ] Authentication
+- [ ] Streaming AI responses
+- [ ] Docker support
+- [ ] Unit & Integration Testing
+- [ ] Swagger Documentation
+
+---
+
+# 📸 Screenshots
+
+## Landing Page
+
+_Add screenshot here_
+
+## Dashboard
+
+_Add screenshot here_
+
+## Chat Workspace
+
+_Add screenshot here_
+
+---
+
+# 👨‍💻 Author
+
+**Adil Junaid**
+
+AI Research Assistant built using the MERN stack, LangChain, Ollama, and MongoDB Atlas.
+
+---
+
+# 📄 License
+
+This project is licensed under the MIT License.
