@@ -6,6 +6,28 @@ const embeddings = new OllamaEmbeddings({
   baseUrl: "http://127.0.0.1:11434",
 });
 
-const vectorStore = new MemoryVectorStore(embeddings);
+// Stores one MemoryVectorStore per document
+const stores = {};
 
-module.exports = vectorStore;
+/**
+ * Get (or create) a vector store for a document.
+ */
+function getVectorStore(documentName) {
+  if (!stores[documentName]) {
+    stores[documentName] = new MemoryVectorStore(embeddings);
+  }
+
+  return stores[documentName];
+}
+
+/**
+ * Return all vector stores.
+ */
+function getAllVectorStores() {
+  return stores;
+}
+
+module.exports = {
+  getVectorStore,
+  getAllVectorStores,
+};

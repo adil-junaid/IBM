@@ -2,8 +2,11 @@ const { retrieveRelevantChunks } = require("./retriever");
 const { buildPrompt } = require("./prompt");
 const { generateAnswer } = require("./llm");
 
-async function askQuestion(question) {
-  const docs = await retrieveRelevantChunks(question);
+async function askQuestion(question, documentName = null) {
+  const docs = await retrieveRelevantChunks(
+  question,
+  documentName
+);
 
   const prompt = buildPrompt(question, docs);
 

@@ -1,13 +1,23 @@
-const vectorStore = require("./vectorStore");
+const { getVectorStore, getAllVectorStores } = require("./vectorStore");
 
-/**
- * Retrieve the most relevant document chunks.
- * @param {string} question
- * @returns {Promise<Array>}
- */
-async function retrieveRelevantChunks(question) {
-  const results = await vectorStore.similaritySearch(question, 3);
-  return results;
+async function retrieveRelevantChunks(question, documentName = null) {
+
+  if (documentName) {
+    const store = getVectorStore(documentName);
+
+    return await store.similaritySearch(question, 5);
+  }
+
+  const stores = getAllVectorStores();
+
+  let docs = [];
+
+  for (const store of Object.values(stores)) {
+    const results = await store.similaritySearch(question, 5);
+    docs.push(...results);
+  }
+
+  return docs;
 }
 
 module.exports = {

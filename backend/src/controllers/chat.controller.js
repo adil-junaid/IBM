@@ -2,7 +2,7 @@ const { askQuestion } = require("../ai/rag.service");
 
 const chatWithDocument = async (req, res) => {
   try {
-    const { question } = req.body;
+    const { question, document } = req.body;
 
     if (!question) {
       return res.status(400).json({
@@ -11,7 +11,7 @@ const chatWithDocument = async (req, res) => {
       });
     }
 
-    const result = await askQuestion(question);
+    const result = await askQuestion(question, document);
 
 return res.json({
   success: true,
