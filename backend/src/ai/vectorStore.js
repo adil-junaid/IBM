@@ -27,7 +27,15 @@ function getAllVectorStores() {
   return stores;
 }
 
+/**
+ * Delete a document's vector store.
+ */
+function deleteVectorStore(documentName) {
+  delete stores[documentName];
+}
+
 module.exports = {
   getVectorStore,
   getAllVectorStores,
+  deleteVectorStore,
 };
