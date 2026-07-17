@@ -1,19 +1,16 @@
-import Navbar from "../components/layout/Navbar";
-import Hero from "../components/common/Hero";
-import Features from "../components/common/Features";
-import HowItWorks from "../components/common/HowItWorks";
-import Footer from "../components/layout/Footer";
+import MainLayout from "../layouts/MainLayout";
+import Hero from "../components/landing/Hero";
+import Features from "../components/landing/Features";
+import HowItWorks from "../components/landing/HowItWorks";
 
-function Home() {
+const Home = () => {
   return (
-    <>
-      <Navbar />
+    <MainLayout>
       <Hero />
       <Features />
       <HowItWorks />
-      <Footer />
-    </>
+    </MainLayout>
   );
-}
+};
 
 export default Home;

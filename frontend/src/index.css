@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+
+  * {
+    @apply border-slate-200;
+  }
+
+  button {
+    @apply cursor-pointer;
+  }
+
+  img {
+    @apply select-none;
+  }
+
+  ::selection {
+    @apply bg-blue-600 text-white;
+  }
+}
