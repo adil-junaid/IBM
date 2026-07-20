@@ -1,16 +1,74 @@
 # 📚 AI Research & Document Assistant
 
-An AI-powered Research and Document Assistant built using Retrieval-Augmented Generation (RAG).
+An AI-powered **Research and Document Assistant** built using **Retrieval-Augmented Generation (RAG)**.
 
-The application allows users to upload research documents and interact with their content through an AI-powered chat interface. Documents are parsed, split into chunks, converted into vector embeddings, and stored persistently in MongoDB. When a user asks a question, the application retrieves relevant document chunks and provides them as context to a hosted Large Language Model (LLM).
+The application allows authenticated users to upload research documents and interact with their content through an AI-powered chat interface.
 
-The project supports multi-document research, document-specific querying, persistent conversations, source references, and real-time streaming AI responses.
+Documents are parsed, split into chunks, converted into vector embeddings, and stored persistently in MongoDB Atlas. When a user asks a question, the application retrieves relevant document chunks and provides them as context to a hosted Large Language Model (LLM).
+
+The system supports secure multi-user authentication, isolated document storage, multi-document research, document-specific querying, persistent conversations, source references, and real-time streaming AI responses.
 
 ---
 
-## 🚀 Features
+# 🌐 Live Application
 
-### 📄 Document Management
+The application is deployed and available online:
+
+**Live Demo:**
+
+https://ibm-ai-research-assistant.vercel.app
+
+### Production Architecture
+
+- **Frontend:** Vercel
+- **Backend:** Render
+- **Authentication:** Clerk
+- **Database:** MongoDB Atlas
+- **LLM:** Groq API
+- **Embeddings:** Hugging Face Inference API
+
+---
+
+# 🚀 Features
+
+## 🔐 Authentication & Multi-User Security
+
+- Secure user authentication using Clerk
+- User sign-in and account management
+- Protected backend API routes
+- Clerk session token verification
+- Bearer-token authenticated API requests
+- Per-user document isolation
+- Per-user document chunk and embedding isolation
+- Per-user RAG retrieval
+- Per-user conversation isolation
+- Per-user chat history isolation
+- Users cannot access or query another user's documents
+
+Each authenticated user's data is isolated using their Clerk user ID.
+
+```text
+Authenticated User
+        │
+        ▼
+User Documents
+        │
+        ▼
+User Document Chunks
+        │
+        ▼
+User-Specific RAG Retrieval
+        │
+        ▼
+User Conversations
+        │
+        ▼
+User Chat History
+```
+
+---
+
+## 📄 Document Management
 
 - Upload research documents
 - PDF document support
@@ -21,24 +79,37 @@ The project supports multi-document research, document-specific querying, persis
 - Multiple document support
 - Persistent document metadata
 - Document-specific querying
-- Search across all uploaded documents
+- Search across all documents belonging to the authenticated user
+- Secure user-specific document deletion
 
-### 🤖 AI Research Assistant
+---
+
+## 🤖 AI Research Assistant
 
 - Chat with uploaded research documents
 - Retrieval-Augmented Generation (RAG)
 - Context-aware AI responses
 - Multi-document retrieval
 - Single-document retrieval
+- Semantic similarity search
 - Source references
 - Markdown response rendering
 - Persistent conversation history
+- User-isolated AI retrieval
 
-### ⚡ Real-Time Streaming
+The AI only retrieves document chunks belonging to the currently authenticated user.
 
-AI responses are streamed progressively from the backend to the frontend, allowing users to see the response as it is generated instead of waiting for the complete response.
+---
 
-### 🔍 Semantic Retrieval
+## ⚡ Real-Time Streaming
+
+AI responses are streamed progressively from the backend to the frontend.
+
+Instead of waiting for the complete response to be generated, users can see the answer appear in real time as tokens are produced by the language model.
+
+---
+
+## 🔍 Semantic Retrieval
 
 The application uses vector embeddings to find document chunks that are semantically related to the user's question.
 
@@ -47,57 +118,86 @@ The current retrieval pipeline uses:
 - Hugging Face hosted embeddings
 - `sentence-transformers/all-MiniLM-L6-v2`
 - 384-dimensional embedding vectors
-- Persistent vector storage in MongoDB
+- Persistent vector storage in MongoDB Atlas
 - Cosine similarity retrieval
+- User-specific retrieval filtering
+- Multi-document semantic search
+- Document-specific semantic search
 
 Native MongoDB Atlas Vector Search can be integrated as a future optimization for larger-scale deployments.
 
-### 💬 Conversation Management
+---
+
+## 💬 Conversation Management
 
 - Create conversations
 - Store user and assistant messages
-- Maintain conversation history
+- Maintain persistent conversation history
 - Associate conversations with selected documents
 - Continue previous research conversations
+- Edit user messages and regenerate AI responses
+- Delete conversations
+- Clear conversation messages
+- User-specific conversation isolation
+
+Each conversation belongs only to the authenticated user who created it.
 
 ---
 
-# 🏗 Architecture
+# 🏗️ System Architecture
 
 ```text
-                         ┌─────────────────────┐
-                         │    React Frontend   │
-                         │   Vite + Tailwind   │
-                         └──────────┬──────────┘
-                                    │
-                                    │ HTTP / Streaming
-                                    ▼
-                         ┌─────────────────────┐
-                         │   Express Backend   │
-                         │      Node.js        │
-                         └──────────┬──────────┘
-                                    │
-                    ┌───────────────┼───────────────┐
-                    │               │               │
-                    ▼               ▼               ▼
-             Document Parser   Hugging Face       Groq API
-                    │           Embeddings          LLM
-                    │               │               │
-                    ▼               ▼               │
-                 Chunks       384D Vectors          │
-                    │               │               │
-                    └───────┬───────┘               │
-                            ▼                       │
-                     MongoDB Atlas                  │
-                            │                       │
-                            ▼                       │
-                    Cosine Similarity               │
-                            │                       │
-                            ▼                       │
-                    Relevant Context ───────────────┘
-                            │
-                            ▼
-                    Streaming AI Answer
+                     ┌────────────────────────┐
+                     │      React Frontend    │
+                     │   Vite + Tailwind CSS  │
+                     │       on Vercel        │
+                     └────────────┬───────────┘
+                                  │
+                                  ▼
+                     ┌────────────────────────┐
+                     │   Clerk Authentication │
+                     │   Session / JWT Token  │
+                     └────────────┬───────────┘
+                                  │
+                                  │ HTTPS
+                                  │ Authorization: Bearer Token
+                                  ▼
+                     ┌────────────────────────┐
+                     │    Express Backend     │
+                     │   Node.js on Render    │
+                     └────────────┬───────────┘
+                                  │
+                     Clerk Token Verification
+                                  │
+                                  ▼
+                         Authenticated User ID
+                                  │
+                 ┌────────────────┼────────────────┐
+                 │                │                │
+                 ▼                ▼                ▼
+          Document Parser   Hugging Face       Groq API
+                 │           Embeddings           LLM
+                 │                │                │
+                 ▼                ▼                │
+              Chunks        384D Vectors          │
+                 │                │                │
+                 └────────┬───────┘                │
+                          ▼                        │
+                    MongoDB Atlas                  │
+                          │                        │
+                     Filter by User                │
+                          │                        │
+                          ▼                        │
+                   Cosine Similarity               │
+                          │                        │
+                          ▼                        │
+                   Relevant Context ───────────────┘
+                          │
+                          ▼
+                   Streaming AI Answer
+                          │
+                          ▼
+                    React Frontend
 ```
 
 ---
@@ -105,43 +205,62 @@ Native MongoDB Atlas Vector Search can be integrated as a future optimization fo
 # 🧠 RAG Workflow
 
 ```text
+User Authenticates with Clerk
+        │
+        ▼
+Clerk User ID Identified
+        │
+        ▼
 Upload Document
-       │
-       ▼
+        │
+        ▼
+Associate Document with User ID
+        │
+        ▼
 Extract Document Text
-       │
-       ▼
+        │
+        ▼
 Split Text into Chunks
-       │
-       ▼
+        │
+        ▼
 Generate Hugging Face Embeddings
-       │
-       ▼
+        │
+        ▼
 384-Dimensional Vectors
-       │
-       ▼
-Store Chunks + Vectors in MongoDB
-       │
-       ▼
+        │
+        ▼
+Store User ID + Chunks + Vectors
+in MongoDB Atlas
+        │
+        ▼
 User Asks a Question
-       │
-       ▼
+        │
+        ▼
+Verify Clerk Authentication
+        │
+        ▼
 Generate Question Embedding
-       │
-       ▼
+        │
+        ▼
+Filter Chunks by User ID
+        │
+        ▼
 Cosine Similarity Search
-       │
-       ▼
+        │
+        ▼
 Retrieve Most Relevant Chunks
-       │
-       ▼
+        │
+        ▼
 Build RAG Prompt
-       │
-       ▼
+        │
+        ▼
 Groq Hosted LLM
-       │
-       ▼
-Stream AI Response to Frontend
+        │
+        ▼
+Stream AI Response
+        │
+        ▼
+Save User-Specific Conversation
 ```
 
 ---
@@ -155,6 +274,7 @@ Stream AI Response to Frontend
 - Tailwind CSS
 - React Router DOM
 - Axios
+- Clerk React
 - Framer Motion
 - Lucide React
 - React Icons
@@ -162,7 +282,18 @@ Stream AI Response to Frontend
 - React Dropzone
 - React Hot Toast
 
-The frontend provides a responsive research dashboard with document management, AI chat, conversation history, source references, and real-time streamed responses.
+The frontend provides a responsive research dashboard with:
+
+- Authentication
+- Protected dashboard access
+- Document management
+- AI chat
+- Conversation history
+- Source references
+- Real-time streamed responses
+- User account management
+
+Clerk session tokens are automatically attached to authenticated API requests.
 
 ---
 
@@ -172,6 +303,7 @@ The frontend provides a responsive research dashboard with document management, 
 
 - Node.js
 - Express.js
+- Clerk Express
 - MongoDB
 - Mongoose
 - Multer
@@ -184,7 +316,9 @@ The frontend provides a responsive research dashboard with document management, 
 
 The backend is responsible for:
 
-- API routing
+- Clerk authentication verification
+- Protected API routing
+- User-specific data isolation
 - Document uploads
 - Document parsing
 - Text chunking
@@ -198,6 +332,40 @@ The backend is responsible for:
 - Chat history
 
 All sensitive API credentials are stored as server-side environment variables.
+
+---
+
+# 🔐 Authentication
+
+Authentication is implemented using Clerk.
+
+The frontend retrieves the authenticated user's Clerk session token and sends it to protected backend endpoints using:
+
+```http
+Authorization: Bearer <clerk-session-token>
+```
+
+The Express backend verifies authentication using Clerk middleware.
+
+After successful authentication, the Clerk user ID is used to isolate user data.
+
+Example:
+
+```text
+Account A
+├── Documents A
+├── Embeddings A
+├── Conversations A
+└── Chat History A
+
+Account B
+├── Documents B
+├── Embeddings B
+├── Conversations B
+└── Chat History B
+```
+
+Account A cannot access or retrieve Account B's data.
 
 ---
 
@@ -215,6 +383,8 @@ GROQ_MODEL=llama-3.1-8b-instant
 
 The model configuration can be changed using environment variables without exposing credentials to the frontend.
 
+---
+
 ## Embedding Model
 
 Document and query embeddings are generated using:
@@ -229,28 +399,34 @@ Embedding dimension:
 384
 ```
 
-Embeddings are generated through a hosted Hugging Face inference endpoint, removing the need for a locally running embedding model.
+Embeddings are generated through the Hugging Face hosted inference endpoint.
+
+This removes the requirement for a locally running embedding model.
 
 ---
 
 # 🗄️ Database
 
-MongoDB is used for persistent application storage.
+MongoDB Atlas is used for persistent application storage.
 
 The application stores:
 
-- Document metadata
-- Document chunks
+- User-owned document metadata
+- User-owned document chunks
 - Vector embeddings
 - Conversations
 - Conversation messages
 - Chat history
 
-Unlike an in-memory vector store, uploaded document embeddings remain available after the backend or Docker containers restart.
+User ownership is associated with stored data using the authenticated Clerk user ID.
+
+Unlike an in-memory vector store, uploaded document embeddings remain available after backend restarts or redeployments.
 
 ---
 
 # 📡 Main API Routes
+
+Protected routes require a valid Clerk authentication token.
 
 ## Document Upload
 
@@ -258,7 +434,9 @@ Unlike an in-memory vector store, uploaded document embeddings remain available 
 POST /api/upload
 ```
 
-Uploads, parses, chunks, embeds, and stores a document.
+Uploads, parses, chunks, embeds, and stores a document for the authenticated user.
+
+---
 
 ## Documents
 
@@ -266,7 +444,15 @@ Uploads, parses, chunks, embeds, and stores a document.
 GET /api/documents
 ```
 
-Retrieves uploaded document information.
+Retrieves documents belonging only to the authenticated user.
+
+```http
+DELETE /api/documents/:name
+```
+
+Deletes a user-owned document and its associated chunks.
+
+---
 
 ## Chat
 
@@ -274,25 +460,45 @@ Retrieves uploaded document information.
 POST /api/chat
 ```
 
-Processes document-based AI questions.
+Processes authenticated document-based AI questions.
 
-The application also supports a streaming chat endpoint used by the frontend for progressive AI responses.
+```http
+POST /api/chat/stream
+```
+
+Streams AI-generated responses progressively to the frontend.
+
+---
 
 ## Conversations
 
 ```http
-/api/conversations
+GET /api/conversations
 ```
 
-Manages persistent AI research conversations.
+Retrieves conversations belonging to the authenticated user.
+
+Additional conversation endpoints support:
+
+- Retrieving one conversation
+- Deleting conversations
+- Clearing conversation messages
+- Editing messages
+- Regenerating AI responses
+
+---
 
 ## History
 
 ```http
-/api/history
+GET /api/history
 ```
 
-Manages stored chat history.
+Retrieves the authenticated user's chat history.
+
+History endpoints also support deleting individual history records and clearing the current user's history.
+
+---
 
 ## Backend Health Check
 
@@ -301,6 +507,8 @@ GET /
 ```
 
 Returns the current backend status.
+
+The health-check endpoint remains publicly accessible for deployment monitoring.
 
 ---
 
@@ -312,9 +520,18 @@ IBM/
 ├── backend/
 │   ├── src/
 │   │   ├── ai/
+│   │   │   ├── documentStore.js
+│   │   │   ├── llm.js
+│   │   │   ├── prompt.js
+│   │   │   ├── rag.service.js
+│   │   │   └── retriever.js
+│   │   │
 │   │   ├── config/
 │   │   ├── controllers/
 │   │   ├── middleware/
+│   │   │   ├── auth.middleware.js
+│   │   │   └── upload.middleware.js
+│   │   │
 │   │   ├── models/
 │   │   ├── routes/
 │   │   ├── services/
@@ -329,9 +546,14 @@ IBM/
 │
 ├── frontend/
 │   ├── src/
+│   │   ├── api/
 │   │   ├── assets/
 │   │   ├── components/
+│   │   │   ├── auth/
+│   │   │   └── dashboard/
+│   │   │
 │   │   ├── hooks/
+│   │   ├── layouts/
 │   │   ├── pages/
 │   │   ├── services/
 │   │   ├── App.jsx
@@ -340,6 +562,7 @@ IBM/
 │   ├── .dockerignore
 │   ├── Dockerfile
 │   ├── nginx.conf
+│   ├── vercel.json
 │   ├── package.json
 │   └── package-lock.json
 │
@@ -361,27 +584,30 @@ Make sure the following are installed:
 - Node.js
 - npm
 - Git
-- Docker Desktop (for containerized execution)
+- Docker Desktop (optional for containerized execution)
 
 You also need access to:
 
-- MongoDB
+- MongoDB Atlas
 - Groq API
 - Hugging Face API
+- Clerk
 
 ---
 
-## Clone the Repository
+# 📥 Clone the Repository
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/adil-junaid/IBM.git
 
 cd IBM
 ```
 
 ---
 
-## Backend Setup
+# ⚙️ Backend Setup
+
+Navigate to the backend:
 
 ```bash
 cd backend
@@ -400,15 +626,18 @@ GROQ_MODEL=llama-3.1-8b-instant
 
 HF_TOKEN=your_hugging_face_token
 
-JWT_SECRET=your_secure_random_secret
+CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
 ```
 
-Never commit the `.env` file to version control.
+Use the exact MongoDB environment variable name expected by your database configuration.
+
+Never commit `.env` files or secret keys to version control.
 
 Start the backend:
 
 ```bash
-npm start
+npm run dev
 ```
 
 The backend runs locally on:
@@ -419,33 +648,47 @@ http://localhost:5001
 
 ---
 
-## Frontend Setup
+# 💻 Frontend Setup
 
 Open another terminal:
 
 ```bash
 cd frontend
 npm install
-npm run dev
 ```
 
-The development frontend runs on:
+Create a `.env` file inside the frontend directory:
 
-```text
-http://localhost:5173
+```env
+VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+VITE_API_URL=http://localhost:5001
 ```
 
-By default, the frontend connects to:
+For local development, `VITE_API_URL` may be omitted if the application already falls back to:
 
 ```text
 http://localhost:5001
 ```
 
-A custom backend URL can be configured using:
+Start the frontend:
 
-```env
-VITE_API_URL=your_backend_url
+```bash
+npm run dev
 ```
+
+The development frontend normally runs on:
+
+```text
+http://localhost:5173
+```
+
+If port `5173` is already in use, Vite may automatically use another port such as:
+
+```text
+http://localhost:5174
+```
+
+The corresponding frontend origin must be allowed by the backend CORS configuration.
 
 ---
 
@@ -453,7 +696,7 @@ VITE_API_URL=your_backend_url
 
 The project includes Docker support for both the frontend and backend.
 
-The frontend is built with Node.js and served in production using Nginx.
+The frontend can be built with Node.js and served using Nginx.
 
 The backend runs as a Node.js Express container.
 
@@ -500,57 +743,126 @@ Sensitive backend environment variables are injected into the backend container 
 
 ---
 
-# 🔐 Security
+# 🔒 Security
 
-The project follows basic security best practices:
+The application implements authentication and user-level data isolation.
 
-- API keys are stored only in backend environment variables
-- `.env` files are excluded from Git
-- API credentials are not exposed to frontend code
-- Docker images exclude `.env` files
-- MongoDB credentials are stored through environment variables
-- Production frontend origins can be configured through `FRONTEND_URL`
+Security measures include:
+
+- Clerk authentication
+- Clerk session-token verification
+- Protected backend API routes
+- Bearer-token authenticated requests
+- Per-user document ownership
+- Per-user document chunk ownership
+- Per-user embedding retrieval
+- Per-user RAG retrieval
+- Per-user conversation storage
+- Per-user chat history
+- Ownership verification during document deletion
+- API keys stored only in backend environment variables
+- `.env` files excluded from Git
+- Backend secrets never exposed to frontend code
+- MongoDB credentials stored through environment variables
+- CORS restricted to approved frontend origins
+
+The Clerk secret key must only exist in the backend environment.
+
+Never expose:
+
+```text
+CLERK_SECRET_KEY
+GROQ_API_KEY
+HF_TOKEN
+MongoDB credentials
+```
 
 Files such as the following should never be committed:
 
 ```text
 .env
-.env.*
+.env.local
+.env.*.local
 node_modules/
 uploads/
 ```
 
 ---
 
-# 🚀 Deployment
+# 🚀 Production Deployment
 
-The application is designed for cloud deployment.
-
-Planned deployment architecture:
+The application is deployed using the following architecture:
 
 ```text
-Frontend
-   │
-   └── Vercel
-          │
-          │ HTTPS
-          ▼
-Backend
-   │
-   └── Render
-          │
-          ├── Groq API
-          ├── Hugging Face API
-          └── MongoDB Atlas
+                    User
+                      │
+                      ▼
+             Vercel Frontend
+                      │
+                      ▼
+             Clerk Authentication
+                      │
+                      ▼
+          Authenticated HTTPS Request
+                      │
+                      ▼
+              Render Backend
+                      │
+          ┌───────────┼───────────┐
+          │           │           │
+          ▼           ▼           ▼
+     MongoDB       Groq API    Hugging Face
+      Atlas           LLM       Embeddings
 ```
 
-Deployment environment variables should be configured through the hosting platform's secure environment variable settings.
+## Frontend
+
+Hosted on Vercel.
+
+Production URL:
+
+```text
+https://ibm-ai-research-assistant.vercel.app
+```
+
+Required frontend environment variables:
+
+```env
+VITE_API_URL=your_render_backend_url
+VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+```
+
+The project includes `vercel.json` to support React Router SPA routing on Vercel.
+
+---
+
+## Backend
+
+Hosted on Render.
+
+Required backend environment variables include:
+
+```env
+MONGO_URI=your_mongodb_connection_string
+
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.1-8b-instant
+
+HF_TOKEN=your_hugging_face_token
+
+CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_SECRET_KEY=your_clerk_secret_key
+
+FRONTEND_URL=https://ibm-ai-research-assistant.vercel.app
+```
+
+Production secrets should be configured through the hosting platform's environment-variable settings and must never be committed to GitHub.
 
 ---
 
 # 📅 Development Status
 
-## Completed
+## ✅ Completed
 
 - [x] Responsive React frontend
 - [x] Node.js Express backend
@@ -561,7 +873,7 @@ Deployment environment variables should be configured through the hosting platfo
 - [x] Markdown processing
 - [x] Document chunking
 - [x] Hosted Hugging Face embeddings
-- [x] Persistent MongoDB vector storage
+- [x] Persistent MongoDB Atlas vector storage
 - [x] Semantic similarity retrieval
 - [x] Multi-document RAG
 - [x] Single-document RAG
@@ -569,30 +881,74 @@ Deployment environment variables should be configured through the hosting platfo
 - [x] Streaming AI responses
 - [x] Source references
 - [x] Conversation persistence
+- [x] Message editing and AI response regeneration
+- [x] Clerk authentication
+- [x] Protected backend API routes
+- [x] Per-user document isolation
+- [x] Per-user document chunk isolation
+- [x] Per-user RAG retrieval
+- [x] Per-user conversation isolation
+- [x] Per-user chat history isolation
 - [x] Dockerized frontend
 - [x] Dockerized backend
 - [x] Docker Compose local deployment
+- [x] Vercel frontend deployment
+- [x] Render backend deployment
+- [x] Production cloud deployment
+- [x] Vercel SPA routing support
 
-## In Progress / Planned
+## 🔮 Future Improvements
 
 - [ ] MongoDB Atlas native Vector Search
-- [ ] Production cloud deployment
-- [ ] Authentication and authorization
-- [ ] AI document summaries
+- [ ] Advanced retrieval reranking
+- [ ] Improved cross-document summarization
+- [ ] AI-generated document summaries
 - [ ] Flashcard generation
 - [ ] Quiz generation
 - [ ] Export research notes
-- [ ] Automated deployment pipeline
+- [ ] Automated CI/CD pipeline
+- [ ] Improved production monitoring
+- [ ] Advanced document analytics
 
 ---
 
 # ⚠️ Current Retrieval Architecture
 
-For the current project scale, semantic retrieval is performed by loading stored document embeddings from MongoDB and calculating cosine similarity in the backend.
+For the current project scale, semantic retrieval is performed by loading the authenticated user's stored document embeddings from MongoDB and calculating cosine similarity in the backend.
 
-This approach works well for small research document collections and allows persistent RAG without requiring a local vector database.
+The retrieval process is user-isolated:
 
-For larger production deployments, the retrieval layer can be upgraded to MongoDB Atlas Vector Search to perform similarity search directly within the database.
+```text
+Question
+   │
+   ▼
+Authenticated User ID
+   │
+   ▼
+Selected Document / All User Documents
+   │
+   ▼
+Load User-Owned Chunks
+   │
+   ▼
+Generate Query Embedding
+   │
+   ▼
+Cosine Similarity
+   │
+   ▼
+Retrieve Relevant Chunks
+   │
+   ▼
+Build RAG Context
+   │
+   ▼
+Generate AI Answer
+```
+
+This approach works well for small and medium-sized research document collections while providing persistent RAG capabilities without requiring a separate vector database.
+
+For larger production deployments, the retrieval layer can be upgraded to MongoDB Atlas Vector Search to perform similarity searches directly within the database.
 
 ---
 
@@ -603,6 +959,7 @@ This project includes work across:
 - Frontend Development
 - Backend Development
 - AI / RAG Integration
+- Authentication & Security
 - Database Integration
 - UI/UX Design
 - Containerization
