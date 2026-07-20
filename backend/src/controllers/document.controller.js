@@ -1,39 +1,151 @@
-const {
-  getDocuments,
-  deleteDocument,
-} = require("../ai/documentRegistry");
+const fs = require("fs");
+
+const Document = require(
+  "../models/document.model"
+);
 
 const {
   deleteVectorStore,
 } = require("../ai/vectorStore");
 
-const listDocuments = (req, res) => {
-  return res.json({
-    success: true,
-    count: getDocuments().length,
-    documents: getDocuments(),
-  });
-};
 
-const removeDocument = (req, res) => {
-  const { name } = req.params;
+// ========================================
+// GET ALL UPLOADED DOCUMENTS
+// ========================================
 
-  const removed = deleteDocument(name);
+const listDocuments = async (
+  req,
+  res
+) => {
+  try {
+    const documents =
+      await Document.find()
+        .sort({
+          uploadedAt: -1,
+        });
 
-  if (!removed) {
-    return res.status(404).json({
+    return res.json({
+      success: true,
+
+      count:
+        documents.length,
+
+      documents,
+    });
+  } catch (error) {
+    console.error(
+      "List documents error:",
+      error
+    );
+
+    return res.status(500).json({
       success: false,
-      message: "Document not found",
+
+      message:
+        error.message ||
+        "Failed to fetch documents.",
     });
   }
-
-  deleteVectorStore(name);
-
-  return res.json({
-    success: true,
-    message: "Document deleted successfully",
-  });
 };
+
+
+// ========================================
+// DELETE DOCUMENT
+// ========================================
+
+const removeDocument = async (
+  req,
+  res
+) => {
+  try {
+    const {
+      name,
+    } = req.params;
+
+    const decodedName =
+      decodeURIComponent(
+        name
+      );
+
+    // Find document by its
+    // original uploaded filename
+    const document =
+      await Document.findOne({
+        originalName:
+          decodedName,
+      });
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+
+        message:
+          "Document not found.",
+      });
+    }
+
+    // ====================================
+    // Remove vector store
+    // ====================================
+
+    deleteVectorStore(
+      document.originalName
+    );
+
+    // ====================================
+    // Delete physical file
+    // ====================================
+
+    if (
+      document.filePath &&
+      fs.existsSync(
+        document.filePath
+      )
+    ) {
+      try {
+        fs.unlinkSync(
+          document.filePath
+        );
+      } catch (
+        fileError
+      ) {
+        console.error(
+          "Failed to delete physical file:",
+          fileError
+        );
+      }
+    }
+
+    // ====================================
+    // Delete MongoDB record
+    // ====================================
+
+    await Document.findByIdAndDelete(
+      document._id
+    );
+
+    return res.json({
+      success: true,
+
+      message:
+        "Document deleted successfully.",
+    });
+  } catch (error) {
+    console.error(
+      "Delete document error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+
+      message:
+        error.message ||
+        "Failed to delete document.",
+    });
+  }
+};
+
 
 module.exports = {
   listDocuments,

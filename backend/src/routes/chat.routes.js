@@ -1,8 +1,24 @@
 const express = require("express");
+
 const router = express.Router();
 
-const { chatWithDocument } = require("../controllers/chat.controller");
+const {
+  chatWithDocument,
+  streamChatWithDocument,
+} = require(
+  "../controllers/chat.controller"
+);
 
-router.post("/", chatWithDocument);
+// Normal chat
+router.post(
+  "/",
+  chatWithDocument
+);
+
+// Streaming chat
+router.post(
+  "/stream",
+  streamChatWithDocument
+);
 
 module.exports = router;

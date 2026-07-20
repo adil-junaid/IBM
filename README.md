@@ -1,63 +1,147 @@
-# 📚 AI Research & Document Assistant (RAG)
+# 📚 AI Research & Document Assistant
 
-An AI-powered Research & Document Assistant that allows users to upload documents (PDF, DOCX, TXT, Markdown) and interact with them using Retrieval-Augmented Generation (RAG).
+An AI-powered Research and Document Assistant built using Retrieval-Augmented Generation (RAG).
 
-The application extracts document content, generates vector embeddings, retrieves relevant information, and uses a Large Language Model (LLM) to answer user queries accurately.
+The application allows users to upload research documents and interact with their content through an AI-powered chat interface. Documents are parsed, split into chunks, converted into vector embeddings, and stored persistently in MongoDB. When a user asks a question, the application retrieves relevant document chunks and provides them as context to a hosted Large Language Model (LLM).
+
+The project supports multi-document research, document-specific querying, persistent conversations, source references, and real-time streaming AI responses.
 
 ---
 
 ## 🚀 Features
 
 ### 📄 Document Management
-- Upload PDF, DOCX, TXT, and Markdown files
-- Drag & Drop file upload
-- Multiple document support (future)
-- File preview
 
-### 🤖 AI Chat
-- Chat with uploaded documents
-- Context-aware responses
-- Streaming AI responses
-- Markdown rendering
-- Code block support
+- Upload research documents
+- PDF document support
+- DOCX document support
+- TXT document support
+- Markdown document support
+- Drag-and-drop file upload
+- Multiple document support
+- Persistent document metadata
+- Document-specific querying
+- Search across all uploaded documents
 
-### 📝 AI Summary
-- Complete document summary
-- Chapter-wise summary
-- Key points extraction
-- Important definitions
+### 🤖 AI Research Assistant
 
-### 🎓 Learning Tools
-- AI-generated Flashcards
-- Quiz Generator (MCQs)
-- Short-answer questions
+- Chat with uploaded research documents
+- Retrieval-Augmented Generation (RAG)
+- Context-aware AI responses
+- Multi-document retrieval
+- Single-document retrieval
+- Source references
+- Markdown response rendering
+- Persistent conversation history
 
-### 🔍 Search
-- Semantic Search
-- Similarity Search using Vector Database
+### ⚡ Real-Time Streaming
 
-### 📤 Export
-- Download summaries
-- Export notes (Future)
+AI responses are streamed progressively from the backend to the frontend, allowing users to see the response as it is generated instead of waiting for the complete response.
+
+### 🔍 Semantic Retrieval
+
+The application uses vector embeddings to find document chunks that are semantically related to the user's question.
+
+The current retrieval pipeline uses:
+
+- Hugging Face hosted embeddings
+- `sentence-transformers/all-MiniLM-L6-v2`
+- 384-dimensional embedding vectors
+- Persistent vector storage in MongoDB
+- Cosine similarity retrieval
+
+Native MongoDB Atlas Vector Search can be integrated as a future optimization for larger-scale deployments.
+
+### 💬 Conversation Management
+
+- Create conversations
+- Store user and assistant messages
+- Maintain conversation history
+- Associate conversations with selected documents
+- Continue previous research conversations
 
 ---
 
-# 🏗 Project Structure
+# 🏗 Architecture
 
+```text
+                         ┌─────────────────────┐
+                         │    React Frontend   │
+                         │   Vite + Tailwind   │
+                         └──────────┬──────────┘
+                                    │
+                                    │ HTTP / Streaming
+                                    ▼
+                         ┌─────────────────────┐
+                         │   Express Backend   │
+                         │      Node.js        │
+                         └──────────┬──────────┘
+                                    │
+                    ┌───────────────┼───────────────┐
+                    │               │               │
+                    ▼               ▼               ▼
+             Document Parser   Hugging Face       Groq API
+                    │           Embeddings          LLM
+                    │               │               │
+                    ▼               ▼               │
+                 Chunks       384D Vectors          │
+                    │               │               │
+                    └───────┬───────┘               │
+                            ▼                       │
+                     MongoDB Atlas                  │
+                            │                       │
+                            ▼                       │
+                    Cosine Similarity               │
+                            │                       │
+                            ▼                       │
+                    Relevant Context ───────────────┘
+                            │
+                            ▼
+                    Streaming AI Answer
 ```
-IBM_DOCANALYZER/
-│
-├── frontend/
-│
-├── backend/
-│
-├── docs/
-│
-├── docker/
-│
-├── README.md
-│
-└── .gitignore
+
+---
+
+# 🧠 RAG Workflow
+
+```text
+Upload Document
+       │
+       ▼
+Extract Document Text
+       │
+       ▼
+Split Text into Chunks
+       │
+       ▼
+Generate Hugging Face Embeddings
+       │
+       ▼
+384-Dimensional Vectors
+       │
+       ▼
+Store Chunks + Vectors in MongoDB
+       │
+       ▼
+User Asks a Question
+       │
+       ▼
+Generate Question Embedding
+       │
+       ▼
+Cosine Similarity Search
+       │
+       ▼
+Retrieve Most Relevant Chunks
+       │
+       ▼
+Build RAG Prompt
+       │
+       ▼
+Groq Hosted LLM
+       │
+       ▼
+Stream AI Response to Frontend
 ```
 
 ---
@@ -73,258 +157,226 @@ IBM_DOCANALYZER/
 - Axios
 - Framer Motion
 - Lucide React
+- React Icons
 - React Markdown
 - React Dropzone
+- React Hot Toast
+
+The frontend provides a responsive research dashboard with document management, AI chat, conversation history, source references, and real-time streamed responses.
 
 ---
 
-## Frontend Folder Structure
-
-```
-frontend/
-│
-├── public/
-│
-├── src/
-│   ├── assets/
-│   ├── components/
-│   │
-│   ├── pages/
-│   │     Landing.jsx
-│   │     Dashboard.jsx
-│   │     Chat.jsx
-│   │     Upload.jsx
-│   │     Summary.jsx
-│   │     Flashcards.jsx
-│   │     Quiz.jsx
-│   │     Settings.jsx
-│   │
-│   ├── hooks/
-│   ├── context/
-│   ├── services/
-│   ├── utils/
-│   ├── App.jsx
-│   └── main.jsx
-│
-└── package.json
-```
-
----
-
-## Frontend Requirements
-
-- Responsive Design
-- Modern UI/UX
-- Dark Theme
-- Mobile Friendly
-- ChatGPT-style Chat Interface
-- Drag & Drop Upload
-- Markdown Rendering
-- Loading Indicators
-- Error Handling
-- Toast Notifications
-
----
-
-# ⚙ Backend
+# ⚙️ Backend
 
 ## Tech Stack
 
 - Node.js
 - Express.js
+- MongoDB
+- Mongoose
 - Multer
 - pdf-parse
+- Mammoth
+- Groq SDK
+- Hugging Face Inference API
 - LangChain
-- OpenAI API
-- ChromaDB
 - dotenv
-- Docker
+
+The backend is responsible for:
+
+- API routing
+- Document uploads
+- Document parsing
+- Text chunking
+- Embedding generation
+- Persistent vector storage
+- Semantic retrieval
+- RAG prompt generation
+- LLM communication
+- Streaming responses
+- Conversation persistence
+- Chat history
+
+All sensitive API credentials are stored as server-side environment variables.
 
 ---
 
-## Backend Folder Structure
+# 🤖 AI Integration
 
+## Large Language Model
+
+The application uses a hosted LLM through the Groq API.
+
+The current model is configured through:
+
+```env
+GROQ_MODEL=llama-3.1-8b-instant
 ```
-backend/
-│
-├── src/
-│
-├── config/
-│
-├── controllers/
-│
-├── middleware/
-│
-├── routes/
-│
-├── services/
-│
-├── utils/
-│
-├── uploads/
-│
-├── app.js
-│
-└── server.js
+
+The model configuration can be changed using environment variables without exposing credentials to the frontend.
+
+## Embedding Model
+
+Document and query embeddings are generated using:
+
+```text
+sentence-transformers/all-MiniLM-L6-v2
 ```
+
+Embedding dimension:
+
+```text
+384
+```
+
+Embeddings are generated through a hosted Hugging Face inference endpoint, removing the need for a locally running embedding model.
 
 ---
 
-## Backend Requirements
+# 🗄️ Database
 
-### File Upload
-- PDF Upload
-- DOCX Upload
-- TXT Upload
-- Markdown Upload
+MongoDB is used for persistent application storage.
 
-### Processing
-- Extract document text
-- Clean extracted text
-- Split into chunks
-- Generate embeddings
+The application stores:
 
-### AI Services
-- RAG Pipeline
-- Prompt Engineering
-- LLM Integration
-- Streaming Responses
+- Document metadata
+- Document chunks
+- Vector embeddings
+- Conversations
+- Conversation messages
+- Chat history
 
-### Database
-- ChromaDB
-- Vector Search
-
-### API
-- REST APIs
-- Error Handling
-- Validation
-- Secure API Keys
+Unlike an in-memory vector store, uploaded document embeddings remain available after the backend or Docker containers restart.
 
 ---
 
-# 📡 API Endpoints
+# 📡 Main API Routes
 
-## Upload
+## Document Upload
 
-```
+```http
 POST /api/upload
 ```
 
-Upload a document.
+Uploads, parses, chunks, embeds, and stores a document.
 
----
+## Documents
+
+```http
+GET /api/documents
+```
+
+Retrieves uploaded document information.
 
 ## Chat
 
-```
+```http
 POST /api/chat
 ```
 
-Chat with uploaded documents.
+Processes document-based AI questions.
+
+The application also supports a streaming chat endpoint used by the frontend for progressive AI responses.
+
+## Conversations
+
+```http
+/api/conversations
+```
+
+Manages persistent AI research conversations.
+
+## History
+
+```http
+/api/history
+```
+
+Manages stored chat history.
+
+## Backend Health Check
+
+```http
+GET /
+```
+
+Returns the current backend status.
 
 ---
 
-## Summary
+# 📁 Project Structure
 
-```
-GET /api/summary
-```
-
-Generate AI summary.
-
----
-
-## Flashcards
-
-```
-GET /api/flashcards
-```
-
-Generate flashcards.
-
----
-
-## Quiz
-
-```
-GET /api/quiz
-```
-
-Generate quiz questions.
-
----
-
-## Health Check
-
-```
-GET /api/health
-```
-
-Server health status.
-
----
-
-# 🧠 RAG Workflow
-
-```
-Upload Document
-        │
-        ▼
-Extract Text
-        │
-        ▼
-Split into Chunks
-        │
-        ▼
-Generate Embeddings
-        │
-        ▼
-Store in ChromaDB
-        │
-        ▼
-User Query
-        │
-        ▼
-Similarity Search
-        │
-        ▼
-Relevant Context
-        │
-        ▼
-OpenAI GPT
-        │
-        ▼
-AI Response
+```text
+IBM/
+│
+├── backend/
+│   ├── src/
+│   │   ├── ai/
+│   │   ├── config/
+│   │   ├── controllers/
+│   │   ├── middleware/
+│   │   ├── models/
+│   │   ├── routes/
+│   │   ├── services/
+│   │   ├── app.js
+│   │   └── server.js
+│   │
+│   ├── uploads/
+│   ├── .dockerignore
+│   ├── Dockerfile
+│   ├── package.json
+│   └── package-lock.json
+│
+├── frontend/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── pages/
+│   │   ├── services/
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   │
+│   ├── .dockerignore
+│   ├── Dockerfile
+│   ├── nginx.conf
+│   ├── package.json
+│   └── package-lock.json
+│
+├── docs/
+├── docker/
+├── docker-compose.yml
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-# 🛠 Installation
+# 🛠️ Local Installation
 
-## Clone Repository
+## Prerequisites
+
+Make sure the following are installed:
+
+- Node.js
+- npm
+- Git
+- Docker Desktop (for containerized execution)
+
+You also need access to:
+
+- MongoDB
+- Groq API
+- Hugging Face API
+
+---
+
+## Clone the Repository
 
 ```bash
-git clone https://github.com/<username>/IBM_DOCANALYZER.git
+git clone <your-repository-url>
 
-cd IBM_DOCANALYZER
-```
-
----
-
-## Frontend Setup
-
-```bash
-cd frontend
-
-npm install
-
-npm run dev
-```
-
-Runs on:
-
-```
-http://localhost:5173
+cd IBM
 ```
 
 ---
@@ -333,79 +385,227 @@ http://localhost:5173
 
 ```bash
 cd backend
-
 npm install
-
-npm run dev
 ```
 
-Runs on:
+Create a `.env` file inside the `backend` directory.
 
+```env
+PORT=5001
+
+MONGO_URI=your_mongodb_connection_string
+
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.1-8b-instant
+
+HF_TOKEN=your_hugging_face_token
+
+JWT_SECRET=your_secure_random_secret
 ```
-http://localhost:5000
+
+Never commit the `.env` file to version control.
+
+Start the backend:
+
+```bash
+npm start
+```
+
+The backend runs locally on:
+
+```text
+http://localhost:5001
 ```
 
 ---
 
-# 📦 Environment Variables
+## Frontend Setup
 
-Backend `.env`
+Open another terminal:
 
+```bash
+cd frontend
+npm install
+npm run dev
 ```
-PORT=5000
 
-OPENAI_API_KEY=your_openai_api_key
+The development frontend runs on:
 
-CHROMA_DB_URL=http://localhost:8000
+```text
+http://localhost:5173
+```
+
+By default, the frontend connects to:
+
+```text
+http://localhost:5001
+```
+
+A custom backend URL can be configured using:
+
+```env
+VITE_API_URL=your_backend_url
+```
+
+---
+
+# 🐳 Docker
+
+The project includes Docker support for both the frontend and backend.
+
+The frontend is built with Node.js and served in production using Nginx.
+
+The backend runs as a Node.js Express container.
+
+## Build Docker Images
+
+From the project root:
+
+```bash
+docker compose build
+```
+
+## Start the Application
+
+```bash
+docker compose up -d
+```
+
+The Dockerized application is available at:
+
+```text
+Frontend: http://localhost:3000
+Backend:  http://localhost:5001
+```
+
+## Check Running Containers
+
+```bash
+docker compose ps
+```
+
+## View Backend Logs
+
+```bash
+docker compose logs -f backend
+```
+
+## Stop Containers
+
+```bash
+docker compose down
+```
+
+Sensitive backend environment variables are injected into the backend container at runtime and are not copied into the Docker image.
+
+---
+
+# 🔐 Security
+
+The project follows basic security best practices:
+
+- API keys are stored only in backend environment variables
+- `.env` files are excluded from Git
+- API credentials are not exposed to frontend code
+- Docker images exclude `.env` files
+- MongoDB credentials are stored through environment variables
+- Production frontend origins can be configured through `FRONTEND_URL`
+
+Files such as the following should never be committed:
+
+```text
+.env
+.env.*
+node_modules/
+uploads/
 ```
 
 ---
 
 # 🚀 Deployment
 
-- Docker
-- AWS App Runner
-- AWS S3 (Future)
-- GitHub Actions (Future)
+The application is designed for cloud deployment.
+
+Planned deployment architecture:
+
+```text
+Frontend
+   │
+   └── Vercel
+          │
+          │ HTTPS
+          ▼
+Backend
+   │
+   └── Render
+          │
+          ├── Groq API
+          ├── Hugging Face API
+          └── MongoDB Atlas
+```
+
+Deployment environment variables should be configured through the hosting platform's secure environment variable settings.
 
 ---
 
-# 📅 Development Roadmap
+# 📅 Development Status
 
-## Phase 1
-- [ ] Project Setup
-- [ ] Frontend Layout
-- [ ] Backend Server
+## Completed
 
-## Phase 2
-- [ ] Document Upload
-- [ ] PDF Parsing
-- [ ] AI Chat
+- [x] Responsive React frontend
+- [x] Node.js Express backend
+- [x] Document upload
+- [x] PDF parsing
+- [x] DOCX parsing
+- [x] TXT parsing
+- [x] Markdown processing
+- [x] Document chunking
+- [x] Hosted Hugging Face embeddings
+- [x] Persistent MongoDB vector storage
+- [x] Semantic similarity retrieval
+- [x] Multi-document RAG
+- [x] Single-document RAG
+- [x] Groq hosted LLM integration
+- [x] Streaming AI responses
+- [x] Source references
+- [x] Conversation persistence
+- [x] Dockerized frontend
+- [x] Dockerized backend
+- [x] Docker Compose local deployment
 
-## Phase 3
-- [ ] RAG Integration
-- [ ] Semantic Search
-- [ ] Streaming Responses
+## In Progress / Planned
 
-## Phase 4
-- [ ] AI Summary
-- [ ] Flashcards
-- [ ] Quiz Generator
+- [ ] MongoDB Atlas native Vector Search
+- [ ] Production cloud deployment
+- [ ] Authentication and authorization
+- [ ] AI document summaries
+- [ ] Flashcard generation
+- [ ] Quiz generation
+- [ ] Export research notes
+- [ ] Automated deployment pipeline
 
-## Phase 5
-- [ ] Authentication
-- [ ] Multiple Documents
-- [ ] Export Notes
-- [ ] Cloud Deployment
+---
+
+# ⚠️ Current Retrieval Architecture
+
+For the current project scale, semantic retrieval is performed by loading stored document embeddings from MongoDB and calculating cosine similarity in the backend.
+
+This approach works well for small research document collections and allows persistent RAG without requiring a local vector database.
+
+For larger production deployments, the retrieval layer can be upgraded to MongoDB Atlas Vector Search to perform similarity search directly within the database.
 
 ---
 
 # 👥 Team
 
-- Backend Development
+This project includes work across:
+
 - Frontend Development
-- AI Integration
+- Backend Development
+- AI / RAG Integration
+- Database Integration
 - UI/UX Design
+- Containerization
 - Cloud Deployment
 
 ---

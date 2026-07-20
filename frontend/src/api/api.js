@@ -1,8 +1,14 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:5001",
-  timeout: 30000,
+  baseURL:
+    import.meta.env.VITE_API_URL ||
+    "http://localhost:5001",
+
+  // Allow enough time for document processing
+  // and AI responses.
+  timeout: 120000,
+
   headers: {
     "Content-Type": "application/json",
   },

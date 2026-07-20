@@ -1,43 +1,80 @@
 const { registerDocument } = require("./documentRegistry");
-const { Document } = require("@langchain/core/documents");
-const { getVectorStore } = require("./vectorStore");
-const crypto = require("crypto");
+
+const {
+  storeDocumentChunks,
+} = require("../services/vectorStore.service");
 
 /**
- * Store document chunks in the vector store.
+ * Generate hosted embeddings and permanently
+ * store document chunks in MongoDB Atlas.
+ *
  * @param {string[]} chunks
  * @param {Object} metadata
+ * @param {ObjectId} documentId
  */
-async function indexDocument(chunks, metadata) {
-  const docs = chunks.map((chunk, index) => {
-    return new Document({
-      pageContent: chunk,
+async function indexDocument(
+  chunks,
+  metadata,
+  documentId
+) {
+  if (!Array.isArray(chunks) || chunks.length === 0) {
+    throw new Error(
+      "No document chunks available for indexing."
+    );
+  }
+
+  if (!documentId) {
+    throw new Error(
+      "documentId is required for persistent vector storage."
+    );
+  }
+
+  // Convert plain text chunks into structured chunks
+  // for persistent MongoDB storage.
+  const structuredChunks = chunks.map(
+    (chunk, index) => ({
+      content: chunk,
+      chunkIndex: index,
+      pages: metadata.pages || null,
+
       metadata: {
-        ...metadata,
+        source: metadata.source,
+        storedName: metadata.storedName,
+        fileSize: metadata.fileSize,
+        fileType: metadata.fileType,
+        uploadedAt: metadata.uploadedAt,
         chunk: index + 1,
+        documentMetadata:
+          metadata.metadata || {},
       },
+    })
+  );
+
+  // Generate Hugging Face embeddings
+  // and persist chunks in MongoDB.
+  const savedChunks =
+    await storeDocumentChunks({
+      documentName: metadata.source,
+      documentId,
+      chunks: structuredChunks,
     });
+
+  // Keep existing document registry working
+  // until the old in-memory architecture is
+  // completely removed.
+  registerDocument({
+    id: documentId.toString(),
+    name: metadata.source,
+    storedName: metadata.storedName,
+    pages: metadata.pages,
+    chunks: savedChunks.length,
+    fileSize: metadata.fileSize,
+    fileType: metadata.fileType,
+    uploadedAt: metadata.uploadedAt,
+    metadata: metadata.metadata,
   });
 
- const store = getVectorStore(metadata.source);
-
-await store.addDocuments(docs);
-
-  // Register the uploaded document
-  // Register the uploaded document
-registerDocument({
-  id: crypto.randomUUID(),
-  name: metadata.source,
-  storedName: metadata.storedName,
-  pages: metadata.pages,
-  chunks: docs.length,
-  fileSize: metadata.fileSize,
-  fileType: metadata.fileType,
-  uploadedAt: metadata.uploadedAt,
-  metadata: metadata.metadata,
-});
-
-  return docs.length;
+  return savedChunks.length;
 }
 
 module.exports = {
