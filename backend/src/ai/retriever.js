@@ -13,11 +13,15 @@ const {
  *
  * Higher score = more similar.
  */
-function cosineSimilarity(vectorA, vectorB) {
+function cosineSimilarity(
+  vectorA,
+  vectorB
+) {
   if (
     !Array.isArray(vectorA) ||
     !Array.isArray(vectorB) ||
-    vectorA.length !== vectorB.length
+    vectorA.length !==
+      vectorB.length
   ) {
     return -1;
   }
@@ -26,18 +30,29 @@ function cosineSimilarity(vectorA, vectorB) {
   let magnitudeA = 0;
   let magnitudeB = 0;
 
-  for (let i = 0; i < vectorA.length; i++) {
-    dotProduct += vectorA[i] * vectorB[i];
+  for (
+    let i = 0;
+    i < vectorA.length;
+    i++
+  ) {
+    dotProduct +=
+      vectorA[i] *
+      vectorB[i];
 
     magnitudeA +=
-      vectorA[i] * vectorA[i];
+      vectorA[i] *
+      vectorA[i];
 
     magnitudeB +=
-      vectorB[i] * vectorB[i];
+      vectorB[i] *
+      vectorB[i];
   }
 
-  magnitudeA = Math.sqrt(magnitudeA);
-  magnitudeB = Math.sqrt(magnitudeB);
+  magnitudeA =
+    Math.sqrt(magnitudeA);
+
+  magnitudeB =
+    Math.sqrt(magnitudeB);
 
   if (
     magnitudeA === 0 ||
@@ -48,8 +63,132 @@ function cosineSimilarity(vectorA, vectorB) {
 
   return (
     dotProduct /
-    (magnitudeA * magnitudeB)
+    (magnitudeA *
+      magnitudeB)
   );
+}
+
+/**
+ * Normalize a filename for comparison.
+ *
+ * Example:
+ * "FusionX.pdf" -> "fusionx.pdf"
+ */
+function normalizeFileName(
+  fileName
+) {
+  if (
+    !fileName ||
+    typeof fileName !==
+      "string"
+  ) {
+    return "";
+  }
+
+  return fileName
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Try to detect whether the user
+ * explicitly mentioned an uploaded
+ * document in the question.
+ *
+ * Example:
+ *
+ * Question:
+ * "What are the contents in FusionX.pdf?"
+ *
+ * Result:
+ * "FusionX.pdf"
+ */
+async function detectDocumentFromQuestion(
+  question
+) {
+  // Get unique uploaded document names
+  // from persistent MongoDB chunks.
+  const documentNames =
+    await DocumentChunk.distinct(
+      "documentName"
+    );
+
+  if (
+    !documentNames ||
+    documentNames.length === 0
+  ) {
+    return null;
+  }
+
+  const normalizedQuestion =
+    question.toLowerCase();
+
+  // =====================================
+  // First try:
+  // Exact filename match
+  //
+  // Example:
+  // FusionX.pdf
+  // =====================================
+
+  for (
+    const documentName
+    of documentNames
+  ) {
+    const normalizedName =
+      normalizeFileName(
+        documentName
+      );
+
+    if (
+      normalizedName &&
+      normalizedQuestion.includes(
+        normalizedName
+      )
+    ) {
+      return documentName;
+    }
+  }
+
+  // =====================================
+  // Second try:
+  // Match filename without extension
+  //
+  // Example:
+  // "Tell me about FusionX"
+  // should match:
+  // FusionX.pdf
+  // =====================================
+
+  for (
+    const documentName
+    of documentNames
+  ) {
+    const normalizedName =
+      normalizeFileName(
+        documentName
+      );
+
+    const nameWithoutExtension =
+      normalizedName.replace(
+        /\.[^/.]+$/,
+        ""
+      );
+
+    // Avoid matching very short
+    // generic filenames.
+    if (
+      nameWithoutExtension.length >=
+        4 &&
+      normalizedQuestion.includes(
+        nameWithoutExtension
+      )
+    ) {
+      return documentName;
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -62,7 +201,8 @@ async function retrieveRelevantChunks(
 ) {
   if (
     !question ||
-    typeof question !== "string"
+    typeof question !==
+      "string"
   ) {
     throw new Error(
       "Question is required for retrieval."
@@ -70,15 +210,51 @@ async function retrieveRelevantChunks(
   }
 
   // =====================================
-  // 1. Generate embedding for question
+  // 1. Determine active document
+  // =====================================
+  //
+  // Priority:
+  //
+  // 1. Explicitly selected document
+  // 2. Filename mentioned in question
+  // 3. All documents
+  // =====================================
+
+  let activeDocument =
+    documentName;
+
+  if (!activeDocument) {
+    activeDocument =
+      await detectDocumentFromQuestion(
+        question
+      );
+  }
+
+  if (activeDocument) {
+    console.log(
+      `Retrieving from document: ${activeDocument}`
+    );
+  } else {
+    console.log(
+      "Retrieving from all documents"
+    );
+  }
+
+  // =====================================
+  // 2. Generate embedding for question
   // =====================================
 
   const questionEmbedding =
-    await generateEmbedding(question);
+    await generateEmbedding(
+      question
+    );
 
   if (
-    !Array.isArray(questionEmbedding) ||
-    questionEmbedding.length !== 384
+    !Array.isArray(
+      questionEmbedding
+    ) ||
+    questionEmbedding.length !==
+      384
   ) {
     throw new Error(
       "Invalid question embedding."
@@ -86,30 +262,33 @@ async function retrieveRelevantChunks(
   }
 
   // =====================================
-  // 2. Build MongoDB query
+  // 3. Build MongoDB query
   // =====================================
 
   const query = {};
 
-  // If a specific document is selected,
-  // search only chunks from that document.
-  if (documentName) {
-    query.documentName = documentName;
+  if (activeDocument) {
+    query.documentName =
+      activeDocument;
   }
 
   // =====================================
-  // 3. Load persistent document chunks
+  // 4. Load persistent document chunks
   // =====================================
 
   const storedChunks =
-    await DocumentChunk.find(query).lean();
+    await DocumentChunk.find(
+      query
+    ).lean();
 
-  if (storedChunks.length === 0) {
+  if (
+    storedChunks.length === 0
+  ) {
     return [];
   }
 
   // =====================================
-  // 4. Calculate cosine similarity
+  // 5. Calculate cosine similarity
   // =====================================
 
   const scoredChunks =
@@ -122,16 +301,20 @@ async function retrieveRelevantChunks(
           chunk.embedding.length ===
             questionEmbedding.length
       )
-      .map((chunk) => ({
-        chunk,
-        score: cosineSimilarity(
-          questionEmbedding,
-          chunk.embedding
-        ),
-      }));
+      .map(
+        (chunk) => ({
+          chunk,
+
+          score:
+            cosineSimilarity(
+              questionEmbedding,
+              chunk.embedding
+            ),
+        })
+      );
 
   // =====================================
-  // 5. Sort by similarity
+  // 6. Sort by similarity
   // =====================================
 
   scoredChunks.sort(
@@ -140,29 +323,53 @@ async function retrieveRelevantChunks(
   );
 
   // =====================================
-  // 6. Select top relevant chunks
+  // 7. Select top relevant chunks
   // =====================================
 
   const topChunks =
     scoredChunks.slice(
       0,
-      documentName ? 4 : 5
+      activeDocument
+        ? 6
+        : 5
     );
 
+  // Log retrieved chunks
+  // for debugging on Render.
+  console.log(
+    "Top retrieved chunks:",
+    topChunks.map(
+      ({ chunk, score }) => ({
+        document:
+          chunk.documentName,
+
+        chunk:
+          chunk.chunkIndex,
+
+        score:
+          Number(
+            score.toFixed(4)
+          ),
+      })
+    )
+  );
+
   // =====================================
-  // 7. Convert MongoDB chunks into
+  // 8. Convert MongoDB chunks into
   //    LangChain-like document objects.
-  //
-  // rag.service.js and prompt.js already
-  // expect pageContent + metadata.
   // =====================================
 
   return topChunks.map(
-    ({ chunk, score }) => ({
-      pageContent: chunk.content,
+    ({
+      chunk,
+      score,
+    }) => ({
+      pageContent:
+        chunk.content,
 
       metadata: {
-        ...(chunk.metadata || {}),
+        ...(chunk.metadata ||
+          {}),
 
         source:
           chunk.documentName,
@@ -171,7 +378,8 @@ async function retrieveRelevantChunks(
           chunk.pages,
 
         chunk:
-          chunk.chunkIndex + 1,
+          chunk.chunkIndex +
+          1,
 
         similarityScore:
           score,
