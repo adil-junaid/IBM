@@ -4,11 +4,12 @@ const Conversation = require(
 
 const {
   askQuestion,
-} = require("../ai/rag.service");
-
+} = require(
+  "../ai/rag.service"
+);
 
 // ========================================
-// GET ALL CONVERSATIONS
+// GET ALL USER CONVERSATIONS
 // ========================================
 
 const getConversations = async (
@@ -16,11 +17,27 @@ const getConversations = async (
   res
 ) => {
   try {
-    const conversations =
-      await Conversation.find()
-        .sort({
-          updatedAt: -1,
+    const userId =
+      req.userId;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({
+          success: false,
+          message:
+            "Authentication required.",
         });
+    }
+
+    // Only conversations belonging
+    // to the authenticated user.
+    const conversations =
+      await Conversation.find({
+        userId,
+      }).sort({
+        updatedAt: -1,
+      });
 
     return res.json({
       success: true,
@@ -32,18 +49,20 @@ const getConversations = async (
       error
     );
 
-    return res.status(500).json({
-      success: false,
-      message:
-        error.message ||
-        "Failed to fetch conversations.",
-    });
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          error.message ||
+          "Failed to fetch conversations.",
+      });
   }
 };
 
-
 // ========================================
-// GET ONE CONVERSATION
+// GET ONE USER CONVERSATION
 // ========================================
 
 const getConversation = async (
@@ -51,21 +70,30 @@ const getConversation = async (
   res
 ) => {
   try {
+    const userId =
+      req.userId;
+
     const {
       conversationId,
     } = req.params;
 
     const conversation =
-      await Conversation.findById(
-        conversationId
-      );
+      await Conversation.findOne({
+        _id:
+          conversationId,
+
+        userId,
+      });
 
     if (!conversation) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Conversation not found.",
-      });
+      return res
+        .status(404)
+        .json({
+          success: false,
+
+          message:
+            "Conversation not found.",
+        });
     }
 
     return res.json({
@@ -78,18 +106,20 @@ const getConversation = async (
       error
     );
 
-    return res.status(500).json({
-      success: false,
-      message:
-        error.message ||
-        "Failed to fetch conversation.",
-    });
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          error.message ||
+          "Failed to fetch conversation.",
+      });
   }
 };
 
-
 // ========================================
-// DELETE CONVERSATION
+// DELETE USER CONVERSATION
 // ========================================
 
 const deleteConversation = async (
@@ -97,25 +127,38 @@ const deleteConversation = async (
   res
 ) => {
   try {
+    const userId =
+      req.userId;
+
     const {
       conversationId,
     } = req.params;
 
+    // Delete only if the conversation
+    // belongs to this user.
     const conversation =
-      await Conversation.findByIdAndDelete(
-        conversationId
-      );
+      await Conversation
+        .findOneAndDelete({
+          _id:
+            conversationId,
+
+          userId,
+        });
 
     if (!conversation) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Conversation not found.",
-      });
+      return res
+        .status(404)
+        .json({
+          success: false,
+
+          message:
+            "Conversation not found.",
+        });
     }
 
     return res.json({
       success: true,
+
       message:
         "Conversation deleted successfully.",
     });
@@ -125,18 +168,20 @@ const deleteConversation = async (
       error
     );
 
-    return res.status(500).json({
-      success: false,
-      message:
-        error.message ||
-        "Failed to delete conversation.",
-    });
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          error.message ||
+          "Failed to delete conversation.",
+      });
   }
 };
 
-
 // ========================================
-// CLEAR CONVERSATION MESSAGES
+// CLEAR USER CONVERSATION MESSAGES
 // ========================================
 
 const clearConversation = async (
@@ -144,31 +189,44 @@ const clearConversation = async (
   res
 ) => {
   try {
+    const userId =
+      req.userId;
+
     const {
       conversationId,
     } = req.params;
 
+    // Verify conversation ownership.
     const conversation =
-      await Conversation.findById(
-        conversationId
-      );
+      await Conversation.findOne({
+        _id:
+          conversationId,
+
+        userId,
+      });
 
     if (!conversation) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Conversation not found.",
-      });
+      return res
+        .status(404)
+        .json({
+          success: false,
+
+          message:
+            "Conversation not found.",
+        });
     }
 
-    conversation.messages = [];
+    conversation.messages =
+      [];
 
     await conversation.save();
 
     return res.json({
       success: true,
+
       message:
         "Conversation cleared successfully.",
+
       conversation,
     });
   } catch (error) {
@@ -177,185 +235,223 @@ const clearConversation = async (
       error
     );
 
-    return res.status(500).json({
-      success: false,
-      message:
-        error.message ||
-        "Failed to clear conversation.",
-    });
+    return res
+      .status(500)
+      .json({
+        success: false,
+
+        message:
+          error.message ||
+          "Failed to clear conversation.",
+      });
   }
 };
-
 
 // ========================================
 // EDIT USER MESSAGE + REGENERATE
 // ========================================
 
-const editConversationMessage = async (
-  req,
-  res
-) => {
-  try {
-    const {
-      conversationId,
-      messageId,
-    } = req.params;
+const editConversationMessage =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const userId =
+        req.userId;
 
-    const { content } = req.body;
+      const {
+        conversationId,
+        messageId,
+      } = req.params;
 
-    if (!content?.trim()) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Message content is required.",
-      });
-    }
+      const {
+        content,
+      } = req.body;
 
-    // Find conversation
-    const conversation =
-      await Conversation.findById(
-        conversationId
+      if (
+        !content?.trim()
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+
+            message:
+              "Message content is required.",
+          });
+      }
+
+      // ===================================
+      // FIND USER-OWNED CONVERSATION
+      // ===================================
+
+      const conversation =
+        await Conversation.findOne({
+          _id:
+            conversationId,
+
+          userId,
+        });
+
+      if (!conversation) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+
+            message:
+              "Conversation not found.",
+          });
+      }
+
+      // ===================================
+      // FIND MESSAGE
+      // ===================================
+
+      const messageIndex =
+        conversation.messages
+          .findIndex(
+            (message) =>
+              message._id
+                .toString() ===
+              messageId
+          );
+
+      if (
+        messageIndex === -1
+      ) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+
+            message:
+              "Message not found.",
+          });
+      }
+
+      const userMessage =
+        conversation.messages[
+          messageIndex
+        ];
+
+      // Only user messages
+      // can be edited.
+      if (
+        userMessage.role !==
+        "user"
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+
+            message:
+              "Only user messages can be edited.",
+          });
+      }
+
+      // ===================================
+      // UPDATE USER MESSAGE
+      // ===================================
+
+      const trimmedContent =
+        content.trim();
+
+      userMessage.content =
+        trimmedContent;
+
+      // null = All Documents belonging
+      // to THIS authenticated user.
+      const document =
+        conversation.document ||
+        null;
+
+      // ===================================
+      // REGENERATE ANSWER
+      //
+      // IMPORTANT:
+      // Pass userId into RAG.
+      // ===================================
+
+      const result =
+        await askQuestion(
+          trimmedContent,
+          document,
+          userId
+        );
+
+      // ===================================
+      // UPDATE ASSISTANT RESPONSE
+      // ===================================
+
+      const nextMessage =
+        conversation.messages[
+          messageIndex + 1
+        ];
+
+      if (
+        nextMessage &&
+        nextMessage.role ===
+          "assistant"
+      ) {
+        nextMessage.content =
+          result.answer;
+
+        nextMessage.sources =
+          result.sources ||
+          [];
+      } else {
+        conversation.messages
+          .splice(
+            messageIndex + 1,
+            0,
+            {
+              role:
+                "assistant",
+
+              content:
+                result.answer,
+
+              sources:
+                result.sources ||
+                [],
+            }
+          );
+      }
+
+      conversation.markModified(
+        "messages"
       );
 
-    if (!conversation) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Conversation not found.",
-      });
-    }
+      await conversation.save();
 
-    // Find the user message
-    const messageIndex =
-      conversation.messages.findIndex(
-        (message) =>
-          message._id.toString() ===
-          messageId
+      return res.json({
+        success: true,
+
+        message:
+          "Message edited and response regenerated successfully.",
+
+        conversation,
+      });
+    } catch (error) {
+      console.error(
+        "Edit conversation message error:",
+        error
       );
 
-    if (messageIndex === -1) {
-      return res.status(404).json({
-        success: false,
-        message:
-          "Message not found.",
-      });
+      return res
+        .status(500)
+        .json({
+          success: false,
+
+          message:
+            error.message ||
+            "Failed to edit message.",
+        });
     }
-
-    const userMessage =
-      conversation.messages[
-        messageIndex
-      ];
-
-    // Only user messages can be edited
-    if (
-      userMessage.role !== "user"
-    ) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Only user messages can be edited.",
-      });
-    }
-
-    // Update the user message
-    userMessage.content =
-      content.trim();
-
-    // Get selected document
-    const document =
-      conversation.document ||
-      null;
-
-    // Generate a new answer
-    // for the edited question
-    const result =
-      await askQuestion(
-        content.trim(),
-        document
-      );
-
-    /*
-     * Normally the assistant response
-     * immediately follows the user message.
-     *
-     * Example:
-     *
-     * index 0 -> user question 1
-     * index 1 -> assistant answer 1
-     * index 2 -> user question 2
-     * index 3 -> assistant answer 2
-     */
-
-    const nextMessage =
-      conversation.messages[
-        messageIndex + 1
-      ];
-
-    if (
-      nextMessage &&
-      nextMessage.role ===
-        "assistant"
-    ) {
-      // Replace ONLY the answer belonging
-      // to the edited question
-      nextMessage.content =
-        result.answer;
-
-      nextMessage.sources =
-        result.sources || [];
-    } else {
-      /*
-       * If no assistant response exists
-       * after this question, insert one
-       * without deleting later messages.
-       */
-      conversation.messages.splice(
-        messageIndex + 1,
-        0,
-        {
-          role: "assistant",
-          content:
-            result.answer,
-          sources:
-            result.sources ||
-            [],
-        }
-      );
-    }
-
-    // Tell Mongoose that the nested
-    // messages array was modified
-    conversation.markModified(
-      "messages"
-    );
-
-    // Save updated conversation
-    await conversation.save();
-
-    return res.json({
-      success: true,
-
-      message:
-        "Message edited and response regenerated successfully.",
-
-      conversation,
-    });
-  } catch (error) {
-    console.error(
-      "Edit conversation message error:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-
-      message:
-        error.message ||
-        "Failed to edit message.",
-    });
-  }
-};
-
+  };
 
 // ========================================
 // EXPORT CONTROLLERS

@@ -1,6 +1,15 @@
-const express = require("express");
+const express = require(
+  "express"
+);
 
-const router = express.Router();
+const router =
+  express.Router();
+
+const {
+  requireAuthentication,
+} = require(
+  "../middleware/auth.middleware"
+);
 
 const {
   chatWithDocument,
@@ -9,13 +18,31 @@ const {
   "../controllers/chat.controller"
 );
 
-// Normal chat
+// ========================================
+// ALL CHAT ROUTES REQUIRE LOGIN
+// ========================================
+
+router.use(
+  requireAuthentication
+);
+
+// ========================================
+// NORMAL CHAT
+//
+// POST /api/chat
+// ========================================
+
 router.post(
   "/",
   chatWithDocument
 );
 
-// Streaming chat
+// ========================================
+// STREAMING CHAT
+//
+// POST /api/chat/stream
+// ========================================
+
 router.post(
   "/stream",
   streamChatWithDocument

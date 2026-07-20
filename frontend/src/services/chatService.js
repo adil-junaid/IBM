@@ -1,6 +1,31 @@
+import {
+  getAuthToken,
+} from "./authToken";
+
 const API_URL =
   import.meta.env.VITE_API_URL ||
   "http://localhost:5001";
+
+/**
+ * Build authenticated headers.
+ */
+const getAuthHeaders =
+  async () => {
+    const token =
+      await getAuthToken();
+
+    const headers = {
+      "Content-Type":
+        "application/json",
+    };
+
+    if (token) {
+      headers.Authorization =
+        `Bearer ${token}`;
+    }
+
+    return headers;
+  };
 
 /**
  * Stream an AI response.
@@ -13,15 +38,15 @@ export const streamMessage = async (
   onSources,
   onConversation
 ) => {
+  const headers =
+    await getAuthHeaders();
+
   const response = await fetch(
     `${API_URL}/api/chat/stream`,
     {
       method: "POST",
 
-      headers: {
-        "Content-Type":
-          "application/json",
-      },
+      headers,
 
       body: JSON.stringify({
         question,
@@ -146,12 +171,19 @@ export const streamMessage = async (
 };
 
 /**
- * Get all conversations.
+ * Get all conversations
+ * belonging to logged-in user.
  */
 export const getConversations =
   async () => {
+    const headers =
+      await getAuthHeaders();
+
     const response = await fetch(
-      `${API_URL}/api/conversations`
+      `${API_URL}/api/conversations`,
+      {
+        headers,
+      }
     );
 
     if (!response.ok) {
@@ -168,8 +200,14 @@ export const getConversations =
  */
 export const getConversation =
   async (conversationId) => {
+    const headers =
+      await getAuthHeaders();
+
     const response = await fetch(
-      `${API_URL}/api/conversations/${conversationId}`
+      `${API_URL}/api/conversations/${conversationId}`,
+      {
+        headers,
+      }
     );
 
     if (!response.ok) {
@@ -186,10 +224,14 @@ export const getConversation =
  */
 export const deleteConversation =
   async (conversationId) => {
+    const headers =
+      await getAuthHeaders();
+
     const response = await fetch(
       `${API_URL}/api/conversations/${conversationId}`,
       {
         method: "DELETE",
+        headers,
       }
     );
 
@@ -207,10 +249,14 @@ export const deleteConversation =
  */
 export const clearConversation =
   async (conversationId) => {
+    const headers =
+      await getAuthHeaders();
+
     const response = await fetch(
       `${API_URL}/api/conversations/${conversationId}/messages`,
       {
         method: "DELETE",
+        headers,
       }
     );
 
@@ -233,15 +279,15 @@ export const editConversationMessage =
     messageId,
     content
   ) => {
+    const headers =
+      await getAuthHeaders();
+
     const response = await fetch(
       `${API_URL}/api/conversations/${conversationId}/messages/${messageId}`,
       {
         method: "PUT",
 
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
+        headers,
 
         body: JSON.stringify({
           content,
@@ -250,7 +296,9 @@ export const editConversationMessage =
     );
 
     const data =
-      await response.json();
+      await response
+        .json()
+        .catch(() => ({}));
 
     if (!response.ok) {
       throw new Error(

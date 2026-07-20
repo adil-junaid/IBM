@@ -13,12 +13,10 @@ const {
 
 /**
  * Build a clean, deduplicated source list.
- *
- * Multiple chunks may come from the same document,
- * but the document should only appear once in the UI.
  */
 function getUniqueSources(docs) {
-  const sourceMap = new Map();
+  const sourceMap =
+    new Map();
 
   for (const doc of docs) {
     const documentName =
@@ -28,13 +26,26 @@ function getUniqueSources(docs) {
       continue;
     }
 
-    // Only add the document once
-    if (!sourceMap.has(documentName)) {
-      sourceMap.set(documentName, {
-        document: documentName,
-        page: doc.metadata?.pages,
-        chunk: doc.metadata?.chunk,
-      });
+    if (
+      !sourceMap.has(
+        documentName
+      )
+    ) {
+      sourceMap.set(
+        documentName,
+        {
+          document:
+            documentName,
+
+          page:
+            doc.metadata
+              ?.pages,
+
+          chunk:
+            doc.metadata
+              ?.chunk,
+        }
+      );
     }
   }
 
@@ -45,91 +56,130 @@ function getUniqueSources(docs) {
 
 /**
  * Normal non-streaming RAG.
+ *
+ * userId is required so retrieval
+ * only searches documents belonging
+ * to the authenticated Clerk user.
  */
 async function askQuestion(
   question,
-  documentName = null
+  documentName = null,
+  userId
 ) {
-  const startTime = Date.now();
+  if (!userId) {
+    throw new Error(
+      "userId is required for secure RAG retrieval."
+    );
+  }
 
-  // ==============================
+  const startTime =
+    Date.now();
+
+  // =====================================
   // RETRIEVAL
-  // ==============================
-  const retrievalStart = Date.now();
+  // =====================================
+
+  const retrievalStart =
+    Date.now();
 
   const docs =
     await retrieveRelevantChunks(
       question,
-      documentName
+      documentName,
+      userId
     );
 
   console.log(
     `Retrieval: ${
-      Date.now() - retrievalStart
+      Date.now() -
+      retrievalStart
     }ms`
   );
 
   if (!docs.length) {
     return {
       answer:
-        "I couldn't find relevant information in the uploaded documents.",
+        "I couldn't find relevant information in your uploaded documents.",
+
       sources: [],
     };
   }
 
-  // ==============================
+  // =====================================
   // BUILD PROMPT
-  // ==============================
-  const prompt = buildPrompt(
-    question,
-    docs
-  );
+  // =====================================
 
-  // ==============================
+  const prompt =
+    buildPrompt(
+      question,
+      docs
+    );
+
+  // =====================================
   // GENERATE ANSWER
-  // ==============================
-  const llmStart = Date.now();
+  // =====================================
+
+  const llmStart =
+    Date.now();
 
   const answer =
-    await generateAnswer(prompt);
+    await generateAnswer(
+      prompt
+    );
 
   console.log(
     `LLM generation: ${
-      Date.now() - llmStart
+      Date.now() -
+      llmStart
     }ms`
   );
 
   console.log(
     `Total RAG: ${
-      Date.now() - startTime
+      Date.now() -
+      startTime
     }ms`
   );
 
   return {
     answer,
 
-    // Remove duplicate document names
-    sources: getUniqueSources(docs),
+    sources:
+      getUniqueSources(
+        docs
+      ),
   };
 }
 
 /**
  * Streaming RAG.
+ *
+ * userId is required so retrieval
+ * only searches documents belonging
+ * to the authenticated Clerk user.
  */
 async function streamQuestion(
   question,
   documentName = null,
+  userId,
   onChunk
 ) {
+  if (!userId) {
+    throw new Error(
+      "userId is required for secure RAG retrieval."
+    );
+  }
+
   const docs =
     await retrieveRelevantChunks(
       question,
-      documentName
+      documentName,
+      userId
     );
 
   if (!docs.length) {
     onChunk(
-      "I couldn't find relevant information in the uploaded documents."
+      "I couldn't find relevant information in your uploaded documents."
     );
 
     return {
@@ -137,10 +187,11 @@ async function streamQuestion(
     };
   }
 
-  const prompt = buildPrompt(
-    question,
-    docs
-  );
+  const prompt =
+    buildPrompt(
+      question,
+      docs
+    );
 
   await streamAnswer(
     prompt,
@@ -148,8 +199,10 @@ async function streamQuestion(
   );
 
   return {
-    // Remove duplicate document names
-    sources: getUniqueSources(docs),
+    sources:
+      getUniqueSources(
+        docs
+      ),
   };
 }
 

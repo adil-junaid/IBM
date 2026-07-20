@@ -1,22 +1,58 @@
 import axios from "axios";
 
+import {
+  getAuthToken,
+} from "../services/authToken";
+
+// ========================================
+// CREATE AXIOS INSTANCE
+// ========================================
+
 const api = axios.create({
-  // Production:
-  // Uses VITE_API_URL configured in Vercel.
-  //
-  // Local development:
-  // Falls back to localhost if VITE_API_URL is not set.
   baseURL:
     import.meta.env.VITE_API_URL ||
     "http://localhost:5001",
 
-  // AI/RAG requests can take longer,
-  // especially when processing documents.
+  // AI/RAG and document uploads
+  // may take longer.
   timeout: 120000,
-
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
+
+// ========================================
+// AUTHENTICATION INTERCEPTOR
+//
+// Automatically adds the current Clerk
+// session token to every Axios request.
+//
+// Authorization:
+// Bearer <Clerk token>
+// ========================================
+
+api.interceptors.request.use(
+  async (config) => {
+    const token =
+      await getAuthToken();
+
+    if (token) {
+      config.headers =
+        config.headers || {};
+
+      config.headers.Authorization =
+        `Bearer ${token}`;
+    }
+
+    return config;
+  },
+
+  (error) => {
+    return Promise.reject(
+      error
+    );
+  }
+);
+
+// ========================================
+// EXPORT
+// ========================================
 
 export default api;

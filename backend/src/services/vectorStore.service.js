@@ -1,50 +1,83 @@
-const DocumentChunk = require("../models/documentChunk.model");
-const { generateEmbedding } = require("./embedding.service");
+const DocumentChunk = require(
+  "../models/documentChunk.model"
+);
+
+const {
+  generateEmbedding,
+} = require(
+  "./embedding.service"
+);
 
 /**
- * Store document chunks and their embeddings in MongoDB Atlas.
- *
- * @param {Object} options
- * @param {string} options.documentName
- * @param {ObjectId|null} options.documentId
- * @param {Array} options.chunks
+ * Store document chunks and embeddings
+ * in MongoDB Atlas.
  */
 async function storeDocumentChunks({
+  userId,
   documentName,
   documentId = null,
   chunks,
 }) {
-  if (!documentName) {
-    throw new Error("documentName is required");
+  // =====================================
+  // VALIDATION
+  // =====================================
+
+  if (!userId) {
+    throw new Error(
+      "userId is required"
+    );
   }
 
-  if (!Array.isArray(chunks) || chunks.length === 0) {
-    throw new Error("chunks must be a non-empty array");
+  if (!documentName) {
+    throw new Error(
+      "documentName is required"
+    );
+  }
+
+  if (
+    !Array.isArray(chunks) ||
+    chunks.length === 0
+  ) {
+    throw new Error(
+      "chunks must be a non-empty array"
+    );
   }
 
   console.log(
     `Generating embeddings for ${chunks.length} chunks...`
   );
 
-  const documentsToInsert = [];
+  const documentsToInsert =
+    [];
 
-  // Generate embeddings one at a time.
-  // This is intentionally sequential for now to avoid
-  // overwhelming the hosted Hugging Face API.
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
+  // =====================================
+  // GENERATE EMBEDDINGS
+  // =====================================
 
-    // Support either plain string chunks
-    // or objects containing a content/text property.
+  for (
+    let i = 0;
+    i < chunks.length;
+    i++
+  ) {
+    const chunk =
+      chunks[i];
+
     const content =
-      typeof chunk === "string"
+      typeof chunk ===
+      "string"
         ? chunk
-        : chunk.content || chunk.text;
+        : chunk.content ||
+          chunk.text;
 
-    if (!content || typeof content !== "string") {
+    if (
+      !content ||
+      typeof content !==
+        "string"
+    ) {
       console.warn(
         `Skipping invalid chunk at index ${i}`
       );
+
       continue;
     }
 
@@ -52,71 +85,115 @@ async function storeDocumentChunks({
       `Generating embedding ${i + 1}/${chunks.length}`
     );
 
-    const embedding = await generateEmbedding(content);
+    const embedding =
+      await generateEmbedding(
+        content
+      );
 
     if (
-      !Array.isArray(embedding) ||
-      embedding.length !== 384
+      !Array.isArray(
+        embedding
+      ) ||
+      embedding.length !==
+        384
     ) {
       throw new Error(
         `Invalid embedding dimension for chunk ${i}. Expected 384, received ${
-          embedding?.length ?? "unknown"
+          embedding?.length ??
+          "unknown"
         }`
       );
     }
 
+    // ===================================
+    // Every chunk belongs to userId
+    // ===================================
+
     documentsToInsert.push({
+      userId,
+
       documentName,
+
       documentId,
+
       content,
+
       chunkIndex:
-        typeof chunk === "object" &&
-        chunk.chunkIndex !== undefined
+        typeof chunk ===
+          "object" &&
+        chunk.chunkIndex !==
+          undefined
           ? chunk.chunkIndex
           : i,
+
       pages:
-        typeof chunk === "object"
-          ? chunk.pages || null
+        typeof chunk ===
+        "object"
+          ? chunk.pages ||
+            null
           : null,
+
       embedding,
+
       metadata:
-        typeof chunk === "object"
-          ? chunk.metadata || {}
+        typeof chunk ===
+        "object"
+          ? chunk.metadata ||
+            {}
           : {},
     });
   }
 
-  if (documentsToInsert.length === 0) {
+  if (
+    documentsToInsert.length ===
+    0
+  ) {
     throw new Error(
       "No valid document chunks were available to store"
     );
   }
 
+  // =====================================
+  // SAVE USER-OWNED CHUNKS
+  // =====================================
+
   const savedChunks =
-    await DocumentChunk.insertMany(
-      documentsToInsert
-    );
+    await DocumentChunk
+      .insertMany(
+        documentsToInsert
+      );
 
   console.log(
-    `${savedChunks.length} document chunks stored in MongoDB Atlas`
+    `${savedChunks.length} document chunks stored for user ${userId}`
   );
 
   return savedChunks;
 }
 
 /**
- * Delete all stored chunks belonging to a document.
+ * Delete chunks belonging to a user's
+ * specific document.
  */
-async function deleteDocumentChunks(documentId) {
+async function deleteDocumentChunks(
+  documentId,
+  userId
+) {
   if (!documentId) {
-    throw new Error("documentId is required");
+    throw new Error(
+      "documentId is required"
+    );
   }
 
-  const result = await DocumentChunk.deleteMany({
-    documentId,
-  });
+  if (!userId) {
+    throw new Error(
+      "userId is required"
+    );
+  }
 
-  return result;
+  return DocumentChunk.deleteMany({
+    documentId,
+    userId,
+  });
 }
 
 module.exports = {

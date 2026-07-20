@@ -12,20 +12,14 @@ const {
 // CONFIGURATION
 // ========================================
 
-// Number of chunks considered before
-// final reranking.
 const MAX_CANDIDATES = 20;
 
-// Final chunks sent to the LLM.
 const DEFAULT_TOP_K = 7;
 
-// More context for broad questions.
 const BROAD_TOP_K = 12;
 
-// Maximum chunks for one document
-// when a broad summary is requested.
-const MAX_DOCUMENT_SUMMARY_CHUNKS = 20;
-
+const MAX_DOCUMENT_SUMMARY_CHUNKS =
+  20;
 
 // ========================================
 // COSINE SIMILARITY
@@ -88,7 +82,6 @@ function cosineSimilarity(
   );
 }
 
-
 // ========================================
 // TEXT NORMALIZATION
 // ========================================
@@ -106,7 +99,6 @@ function normalizeText(text) {
     .trim();
 }
 
-
 // ========================================
 // REMOVE FILE EXTENSION
 // ========================================
@@ -122,17 +114,30 @@ function removeExtension(
   );
 }
 
-
 // ========================================
 // DETECT DOCUMENT FROM QUESTION
+//
+// SECURITY:
+// Only checks document names belonging
+// to the authenticated user.
 // ========================================
 
 async function detectDocumentFromQuestion(
-  question
+  question,
+  userId
 ) {
+  if (!userId) {
+    throw new Error(
+      "userId is required for document detection."
+    );
+  }
+
   const documentNames =
     await DocumentChunk.distinct(
-      "documentName"
+      "documentName",
+      {
+        userId,
+      }
     );
 
   if (
@@ -145,12 +150,10 @@ async function detectDocumentFromQuestion(
   const normalizedQuestion =
     normalizeText(question);
 
-  // --------------------------------------
   // Exact filename detection
   //
   // Example:
   // "summarize FusionX.pdf"
-  // --------------------------------------
 
   for (
     const documentName
@@ -170,12 +173,10 @@ async function detectDocumentFromQuestion(
     }
   }
 
-  // --------------------------------------
   // Filename without extension
   //
   // Example:
   // "tell me about FusionX"
-  // --------------------------------------
 
   for (
     const documentName
@@ -199,7 +200,6 @@ async function detectDocumentFromQuestion(
   return null;
 }
 
-
 // ========================================
 // QUERY TYPE DETECTION
 // ========================================
@@ -209,10 +209,6 @@ function detectQueryType(
 ) {
   const q =
     normalizeText(question);
-
-  // --------------------------------------
-  // Broad document questions
-  // --------------------------------------
 
   const broadPatterns = [
     "summarize",
@@ -240,10 +236,6 @@ function detectQueryType(
     return "broad";
   }
 
-  // --------------------------------------
-  // Comparison questions
-  // --------------------------------------
-
   const comparisonPatterns = [
     "compare",
     "comparison",
@@ -263,10 +255,6 @@ function detectQueryType(
     return "comparison";
   }
 
-  // --------------------------------------
-  // List questions
-  // --------------------------------------
-
   const listPatterns = [
     "list all",
     "what are all",
@@ -285,11 +273,8 @@ function detectQueryType(
     return "list";
   }
 
-  // Default:
-  // normal semantic question
   return "specific";
 }
-
 
 // ========================================
 // TOKENIZE QUESTION
@@ -349,7 +334,6 @@ function getKeywords(text) {
     );
 }
 
-
 // ========================================
 // KEYWORD RELEVANCE SCORE
 // ========================================
@@ -390,8 +374,6 @@ function calculateKeywordScore(
       matches += 1;
     }
 
-    // Slight boost when a keyword
-    // appears in the filename.
     if (
       normalizedDocument.includes(
         keyword
@@ -407,7 +389,6 @@ function calculateKeywordScore(
   );
 }
 
-
 // ========================================
 // RERANK CANDIDATES
 // ========================================
@@ -422,19 +403,10 @@ function rerankChunks(
         calculateKeywordScore(
           question,
           candidate.chunk.content,
-          candidate.chunk.documentName
+          candidate.chunk
+            .documentName
         );
 
-      // Hybrid ranking:
-      //
-      // 80% semantic similarity
-      // 20% keyword relevance
-      //
-      // Semantic search handles questions
-      // phrased differently from documents.
-      //
-      // Keyword matching helps names such
-      // as QueuePilot, FusionX, React, etc.
       const finalScore =
         (
           candidate.score *
@@ -460,7 +432,6 @@ function rerankChunks(
     );
 }
 
-
 // ========================================
 // SELECT DIVERSE CHUNKS
 // ========================================
@@ -480,12 +451,6 @@ function selectDiverseChunks(
 
   const documentCounts =
     new Map();
-
-  // --------------------------------------
-  // First pass:
-  // Ensure multiple relevant documents
-  // can contribute to All Documents mode.
-  // --------------------------------------
 
   for (
     const candidate
@@ -519,11 +484,6 @@ function selectDiverseChunks(
     }
   }
 
-  // --------------------------------------
-  // Second pass:
-  // Fill remaining slots by relevance.
-  // --------------------------------------
-
   for (
     const candidate
     of rankedChunks
@@ -551,16 +511,26 @@ function selectDiverseChunks(
   return selected;
 }
 
-
 // ========================================
 // RETRIEVE BROAD DOCUMENT CONTENT
+//
+// SECURITY:
+// Requires both userId and documentName.
 // ========================================
 
 async function retrieveBroadDocument(
-  documentName
+  documentName,
+  userId
 ) {
+  if (!userId) {
+    throw new Error(
+      "userId is required for document retrieval."
+    );
+  }
+
   const chunks =
     await DocumentChunk.find({
+      userId,
       documentName,
     })
       .sort({
@@ -574,9 +544,6 @@ async function retrieveBroadDocument(
     return [];
   }
 
-  // For reasonably sized documents,
-  // provide all chunks so the LLM can
-  // create a proper overview.
   if (
     chunks.length <=
     MAX_DOCUMENT_SUMMARY_CHUNKS
@@ -610,9 +577,6 @@ async function retrieveBroadDocument(
     );
   }
 
-  // For large documents, sample chunks
-  // across the entire document rather
-  // than only taking the beginning.
   const selected = [];
 
   const step =
@@ -666,14 +630,20 @@ async function retrieveBroadDocument(
   );
 }
 
-
 // ========================================
 // MAIN RETRIEVAL FUNCTION
+//
+// IMPORTANT:
+// userId is mandatory.
+//
+// All MongoDB queries are scoped to the
+// authenticated Clerk user.
 // ========================================
 
 async function retrieveRelevantChunks(
   question,
-  documentName = null
+  documentName = null,
+  userId
 ) {
   if (
     !question ||
@@ -682,6 +652,12 @@ async function retrieveRelevantChunks(
   ) {
     throw new Error(
       "Question is required for retrieval."
+    );
+  }
+
+  if (!userId) {
+    throw new Error(
+      "userId is required for secure retrieval."
     );
   }
 
@@ -697,24 +673,19 @@ async function retrieveRelevantChunks(
 
   // =====================================
   // STEP 2:
-  // Determine active document
+  // Detect document mentioned in question
   //
-  // Priority:
-  //
-  // 1. Document explicitly selected
-  //    by user in UI.
-  //
-  // 2. Document explicitly mentioned
-  //    in the question.
-  //
-  // 3. Otherwise search all documents.
+  // Only searches filenames belonging
+  // to this authenticated user.
   // =====================================
 
   const mentionedDocument =
     await detectDocumentFromQuestion(
-      question
+      question,
+      userId
     );
 
+  // Explicit UI selection takes priority.
   const activeDocument =
     documentName ||
     mentionedDocument ||
@@ -723,26 +694,26 @@ async function retrieveRelevantChunks(
   console.log(
     "RAG retrieval request:",
     {
+      userId,
+
       question,
+
       queryType,
+
       selectedDocument:
         documentName,
+
       mentionedDocument,
+
       activeDocument:
         activeDocument ||
-        "ALL DOCUMENTS",
+        "ALL USER DOCUMENTS",
     }
   );
 
   // =====================================
   // STEP 3:
-  // Handle broad questions about
-  // a specific document.
-  //
-  // Example:
-  //
-  // "Summarize FusionX.pdf"
-  // "What are the contents of FusionX?"
+  // Broad retrieval for one document
   // =====================================
 
   if (
@@ -751,7 +722,8 @@ async function retrieveRelevantChunks(
   ) {
     const broadChunks =
       await retrieveBroadDocument(
-        activeDocument
+        activeDocument,
+        userId
       );
 
     console.log(
@@ -785,22 +757,27 @@ async function retrieveRelevantChunks(
 
   // =====================================
   // STEP 5:
-  // Build MongoDB search scope
+  // Build SECURE MongoDB query
+  //
+  // userId is ALWAYS included.
   // =====================================
 
-  const query = {};
+  const query = {
+    userId,
+  };
 
   if (activeDocument) {
     query.documentName =
       activeDocument;
   }
 
-  // No activeDocument means:
+  // If no activeDocument:
   //
-  // {}
+  // { userId }
   //
-  // Therefore MongoDB loads chunks
-  // from ALL uploaded documents.
+  // This means:
+  // search ALL documents belonging
+  // to THIS user only.
 
   const storedChunks =
     await DocumentChunk.find(
@@ -865,10 +842,6 @@ async function retrieveRelevantChunks(
   // =====================================
   // STEP 8:
   // Hybrid reranking
-  //
-  // Semantic similarity
-  // +
-  // keyword relevance
   // =====================================
 
   const reranked =
@@ -886,7 +859,8 @@ async function retrieveRelevantChunks(
     DEFAULT_TOP_K;
 
   if (
-    queryType === "comparison" ||
+    queryType ===
+      "comparison" ||
     queryType === "list" ||
     queryType === "broad"
   ) {
@@ -902,16 +876,12 @@ async function retrieveRelevantChunks(
   let finalChunks;
 
   if (activeDocument) {
-    // One document:
-    // pure relevance ranking.
     finalChunks =
       reranked.slice(
         0,
         finalLimit
       );
   } else {
-    // All Documents:
-    // maintain document diversity.
     finalChunks =
       selectDiverseChunks(
         reranked,
@@ -963,9 +933,7 @@ async function retrieveRelevantChunks(
 
   // =====================================
   // STEP 11:
-  // Convert MongoDB chunks into
-  // document objects expected by
-  // rag.service.js and prompt.js
+  // Convert to RAG document objects
   // =====================================
 
   return finalChunks.map(
@@ -1005,7 +973,6 @@ async function retrieveRelevantChunks(
     })
   );
 }
-
 
 module.exports = {
   retrieveRelevantChunks,

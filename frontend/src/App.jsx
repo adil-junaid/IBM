@@ -1,7 +1,16 @@
-import { Routes, Route } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+
+import {
+  SignedIn,
+  SignedOut,
+  SignIn,
+} from "@clerk/clerk-react";
 
 import Home from "./pages/Home";
-import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
 import DashboardHome from "./pages/dashboard/DashboardHome";
@@ -12,62 +21,185 @@ import SettingsPage from "./pages/dashboard/SettingsPage";
 
 import DashboardLayout from "./layouts/DashboardLayout";
 
+// ========================================
+// Protected Dashboard Route
+// ========================================
+
+function ProtectedRoute({
+  children,
+}) {
+  return (
+    <>
+      <SignedIn>
+        {children}
+      </SignedIn>
+
+      <SignedOut>
+        <Navigate
+          to="/login"
+          replace
+        />
+      </SignedOut>
+    </>
+  );
+}
+
+// ========================================
+// Login Page
+// ========================================
+
+function ClerkLoginPage() {
+  return (
+    <>
+      <SignedIn>
+        <Navigate
+          to="/dashboard"
+          replace
+        />
+      </SignedIn>
+
+      <SignedOut>
+        <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            alignItems: "center",
+            justifyContent:
+              "center",
+            background:
+              "#f8fafc",
+          }}
+        >
+          <SignIn
+            routing="path"
+            path="/login"
+            signUpUrl="/sign-up"
+            fallbackRedirectUrl="/dashboard"
+          />
+        </div>
+      </SignedOut>
+    </>
+  );
+}
+
+// ========================================
+// Sign Up Page
+// ========================================
+
+function ClerkSignUpPage() {
+  return (
+    <>
+      <SignedIn>
+        <Navigate
+          to="/dashboard"
+          replace
+        />
+      </SignedIn>
+
+      <SignedOut>
+        <Navigate
+          to="/login"
+          replace
+        />
+      </SignedOut>
+    </>
+  );
+}
+
+// ========================================
+// Application Routes
+// ========================================
+
 function App() {
   return (
     <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Home />} />
+      {/* Public Home */}
+      <Route
+        path="/"
+        element={<Home />}
+      />
 
-      <Route path="/login" element={<Login />} />
+      {/* Clerk Login */}
+      <Route
+        path="/login/*"
+        element={
+          <ClerkLoginPage />
+        }
+      />
 
-      {/* Dashboard Routes */}
+      {/* Sign Up */}
+      <Route
+        path="/sign-up/*"
+        element={
+          <ClerkSignUpPage />
+        }
+      />
+
+      {/* Dashboard Home */}
       <Route
         path="/dashboard"
         element={
-          <DashboardLayout>
-            <DashboardHome />
-          </DashboardLayout>
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DashboardHome />
+            </DashboardLayout>
+          </ProtectedRoute>
         }
       />
 
+      {/* Upload */}
       <Route
         path="/dashboard/upload"
         element={
-          <DashboardLayout>
-            <UploadPage />
-          </DashboardLayout>
+          <ProtectedRoute>
+            <DashboardLayout>
+              <UploadPage />
+            </DashboardLayout>
+          </ProtectedRoute>
         }
       />
 
+      {/* Chat */}
       <Route
         path="/dashboard/chat"
         element={
-          <DashboardLayout>
-            <ChatPage />
-          </DashboardLayout>
+          <ProtectedRoute>
+            <DashboardLayout>
+              <ChatPage />
+            </DashboardLayout>
+          </ProtectedRoute>
         }
       />
 
+      {/* History */}
       <Route
         path="/dashboard/history"
         element={
-          <DashboardLayout>
-            <HistoryPage />
-          </DashboardLayout>
+          <ProtectedRoute>
+            <DashboardLayout>
+              <HistoryPage />
+            </DashboardLayout>
+          </ProtectedRoute>
         }
       />
 
+      {/* Settings */}
       <Route
         path="/dashboard/settings"
         element={
-          <DashboardLayout>
-            <SettingsPage />
-          </DashboardLayout>
+          <ProtectedRoute>
+            <DashboardLayout>
+              <SettingsPage />
+            </DashboardLayout>
+          </ProtectedRoute>
         }
       />
 
       {/* 404 */}
-      <Route path="*" element={<NotFound />} />
+      <Route
+        path="*"
+        element={<NotFound />}
+      />
     </Routes>
   );
 }

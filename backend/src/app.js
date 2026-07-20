@@ -1,42 +1,62 @@
 const express = require("express");
 const cors = require("cors");
 
-// Import Routes
-const uploadRoutes = require("./routes/upload.routes");
-const chatRoutes = require("./routes/chat.routes");
-const documentRoutes = require("./routes/document.routes");
-const historyRoutes = require("./routes/history.routes");
+const {
+  clerkMiddleware,
+} = require("@clerk/express");
+
+// ========================================
+// IMPORT ROUTES
+// ========================================
+
+const uploadRoutes = require(
+  "./routes/upload.routes"
+);
+
+const chatRoutes = require(
+  "./routes/chat.routes"
+);
+
+const documentRoutes = require(
+  "./routes/document.routes"
+);
+
+const historyRoutes = require(
+  "./routes/history.routes"
+);
+
 const conversationRoutes = require(
   "./routes/conversation.routes"
 );
 
-// Create Express App
+// ========================================
+// CREATE EXPRESS APP
+// ========================================
+
 const app = express();
 
-// ==============================
-// MIDDLEWARE
-// ==============================
+// ========================================
+// CORS
+// ========================================
 
-// Allowed frontend origins
 const allowedOrigins = [
   // Local Vite development
   "http://localhost:5173",
+  "http://localhost:5174",
 
   // Local Docker frontend
   "http://localhost:3000",
 
   // Old Vercel domain
-  // Keep temporarily because it redirects
   "https://ibm-peach.vercel.app",
 
   // Current production frontend
   "https://ibm-ai-research-assistant.vercel.app",
 
-  // Optional frontend URL from environment variable
+  // Optional frontend URL
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
-// Enable CORS
 app.use(
   cors({
     origin: allowedOrigins,
@@ -57,95 +77,136 @@ app.use(
   })
 );
 
-// Parse JSON request bodies
-app.use(express.json());
+// ========================================
+// REQUEST BODY PARSING
+// ========================================
 
-// Parse URL-encoded request bodies
+app.use(
+  express.json()
+);
+
 app.use(
   express.urlencoded({
     extended: true,
   })
 );
 
-// ==============================
-// HEALTH CHECK
-// ==============================
+// ========================================
+// CLERK AUTHENTICATION MIDDLEWARE
+//
+// This verifies Clerk session tokens and
+// makes authentication data available to
+// requireAuthentication middleware.
+//
+// Individual routes still decide whether
+// authentication is required.
+// ========================================
 
-app.get("/", (req, res) => {
-  res.json({
-    success: true,
-    message:
-      "AI Research Assistant Backend is Running 🚀",
-  });
-});
+app.use(
+  clerkMiddleware()
+);
 
-// ==============================
+// ========================================
+// PUBLIC HEALTH CHECK
+//
+// This remains public so Render can
+// check whether the backend is running.
+// ========================================
+
+app.get(
+  "/",
+  (req, res) => {
+    res.json({
+      success: true,
+
+      message:
+        "AI Research Assistant Backend is Running 🚀",
+    });
+  }
+);
+
+// ========================================
 // API ROUTES
-// ==============================
+// ========================================
 
-// Document Upload
+// Protected inside upload.routes.js
 app.use(
   "/api/upload",
   uploadRoutes
 );
 
-// AI Chat
+// Authentication will be added next
 app.use(
   "/api/chat",
   chatRoutes
 );
 
-// Documents
+// Authentication will be added next
 app.use(
   "/api/documents",
   documentRoutes
 );
 
-// Chat History
+// Authentication will be added next
 app.use(
   "/api/history",
   historyRoutes
 );
 
-// Conversations
+// Authentication will be added next
 app.use(
   "/api/conversations",
   conversationRoutes
 );
 
-// ==============================
+// ========================================
 // 404 HANDLER
-// ==============================
-
-app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: "Route not found.",
-  });
-});
-
-// ==============================
-// GLOBAL ERROR HANDLER
-// ==============================
+// ========================================
 
 app.use(
-  (error, req, res, next) => {
+  (req, res) => {
+    res.status(404).json({
+      success: false,
+
+      message:
+        "Route not found.",
+    });
+  }
+);
+
+// ========================================
+// GLOBAL ERROR HANDLER
+// ========================================
+
+app.use(
+  (
+    error,
+    req,
+    res,
+    next
+  ) => {
     console.error(
       "Global error:",
       error
     );
 
-    res.status(
-      error.status || 500
-    ).json({
-      success: false,
+    res
+      .status(
+        error.status ||
+          500
+      )
+      .json({
+        success: false,
 
-      message:
-        error.message ||
-        "Internal server error.",
-    });
+        message:
+          error.message ||
+          "Internal server error.",
+      });
   }
 );
 
-// Export Express App
+// ========================================
+// EXPORT EXPRESS APP
+// ========================================
+
 module.exports = app;

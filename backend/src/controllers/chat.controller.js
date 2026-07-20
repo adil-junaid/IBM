@@ -3,50 +3,111 @@ const {
   streamQuestion,
 } = require("../ai/rag.service");
 
-const Chat = require("../models/Chat");
+const Chat = require(
+  "../models/Chat"
+);
+
 const Conversation = require(
   "../models/conversation.model"
 );
 
-/**
- * Normal non-streaming chat
- */
-const chatWithDocument = async (req, res) => {
+// ========================================
+// NORMAL NON-STREAMING CHAT
+// ========================================
+
+const chatWithDocument = async (
+  req,
+  res
+) => {
   try {
+    // =====================================
+    // AUTHENTICATED USER
+    // =====================================
+
+    const userId =
+      req.userId;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .json({
+          success: false,
+
+          message:
+            "Authentication required.",
+        });
+    }
+
     const {
       question,
       document = null,
       conversationId = null,
     } = req.body;
 
-    if (!question || !question.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Question is required.",
-      });
+    if (
+      !question ||
+      !question.trim()
+    ) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+
+          message:
+            "Question is required.",
+        });
     }
 
     const trimmedQuestion =
       question.trim();
 
     // =====================================
-    // Find or create conversation
+    // FIND EXISTING CONVERSATION
+    //
+    // SECURITY:
+    // The conversation must belong to
+    // the authenticated Clerk user.
     // =====================================
 
-    let conversation = null;
+    let conversation =
+      null;
 
     if (conversationId) {
       conversation =
-        await Conversation.findById(
-          conversationId
-        );
+        await Conversation.findOne({
+          _id:
+            conversationId,
+
+          userId,
+        });
+
+      // If an ID was supplied but it does
+      // not belong to this user, do not
+      // silently access another user's data.
+      if (!conversation) {
+        return res
+          .status(404)
+          .json({
+            success: false,
+
+            message:
+              "Conversation not found.",
+          });
+      }
     }
+
+    // =====================================
+    // CREATE NEW CONVERSATION
+    // =====================================
 
     if (!conversation) {
       conversation =
         await Conversation.create({
+          userId,
+
           title:
-            trimmedQuestion.length > 50
+            trimmedQuestion.length >
+            50
               ? `${trimmedQuestion.slice(
                   0,
                   50
@@ -59,58 +120,94 @@ const chatWithDocument = async (req, res) => {
         });
     }
 
-    // Save user message
+    // =====================================
+    // SAVE USER MESSAGE
+    // =====================================
+
     conversation.messages.push({
       role: "user",
-      content: trimmedQuestion,
+
+      content:
+        trimmedQuestion,
     });
 
+    // null means:
+    // search all documents owned
+    // by this authenticated user.
     conversation.document =
       document || null;
 
     await conversation.save();
 
     // =====================================
-    // Generate AI answer
+    // GENERATE AI ANSWER
+    //
+    // userId flows into:
+    //
+    // RAG service
+    //   ↓
+    // retriever
+    //   ↓
+    // DocumentChunk.find({ userId })
     // =====================================
 
-    const result = await askQuestion(
-      trimmedQuestion,
-      document
-    );
+    const result =
+      await askQuestion(
+        trimmedQuestion,
+        document,
+        userId
+      );
 
     // =====================================
-    // Save assistant message
+    // SAVE ASSISTANT MESSAGE
     // =====================================
 
     conversation.messages.push({
       role: "assistant",
-      content: result.answer,
-      sources: result.sources || [],
+
+      content:
+        result.answer,
+
+      sources:
+        result.sources ||
+        [],
     });
 
     await conversation.save();
 
     // =====================================
-    // Keep existing Chat history
+    // SAVE USER-OWNED CHAT HISTORY
     // =====================================
 
-    const chat = await Chat.create({
-      question: trimmedQuestion,
-      answer: result.answer,
-      document,
-      sources: result.sources || [],
-    });
+    const chat =
+      await Chat.create({
+        userId,
+
+        question:
+          trimmedQuestion,
+
+        answer:
+          result.answer,
+
+        document,
+
+        sources:
+          result.sources ||
+          [],
+      });
 
     return res.json({
       success: true,
 
-      answer: result.answer,
+      answer:
+        result.answer,
 
       sources:
-        result.sources || [],
+        result.sources ||
+        [],
 
-      chatId: chat._id,
+      chatId:
+        chat._id,
 
       conversationId:
         conversation._id,
@@ -121,233 +218,325 @@ const chatWithDocument = async (req, res) => {
       error
     );
 
-    return res.status(500).json({
-      success: false,
+    return res
+      .status(500)
+      .json({
+        success: false,
 
-      message:
-        error.message ||
-        "Failed to process chat request.",
-    });
+        message:
+          error.message ||
+          "Failed to process chat request.",
+      });
   }
 };
 
-/**
- * Streaming chat
- */
-const streamChatWithDocument = async (
-  req,
-  res
-) => {
-  try {
-    const {
-      question,
-      document = null,
-      conversationId = null,
-    } = req.body;
+// ========================================
+// STREAMING CHAT
+// ========================================
 
-    if (!question || !question.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Question is required.",
+const streamChatWithDocument =
+  async (
+    req,
+    res
+  ) => {
+    try {
+      // ===================================
+      // AUTHENTICATED USER
+      // ===================================
+
+      const userId =
+        req.userId;
+
+      if (!userId) {
+        return res
+          .status(401)
+          .json({
+            success: false,
+
+            message:
+              "Authentication required.",
+          });
+      }
+
+      const {
+        question,
+        document = null,
+        conversationId = null,
+      } = req.body;
+
+      if (
+        !question ||
+        !question.trim()
+      ) {
+        return res
+          .status(400)
+          .json({
+            success: false,
+
+            message:
+              "Question is required.",
+          });
+      }
+
+      const trimmedQuestion =
+        question.trim();
+
+      // ===================================
+      // FIND EXISTING CONVERSATION
+      //
+      // SECURITY:
+      // Search by BOTH conversation ID
+      // and authenticated user ID.
+      // ===================================
+
+      let conversation =
+        null;
+
+      if (conversationId) {
+        conversation =
+          await Conversation.findOne({
+            _id:
+              conversationId,
+
+            userId,
+          });
+
+        if (!conversation) {
+          return res
+            .status(404)
+            .json({
+              success: false,
+
+              message:
+                "Conversation not found.",
+            });
+        }
+      }
+
+      // ===================================
+      // CREATE NEW CONVERSATION
+      // ===================================
+
+      if (!conversation) {
+        conversation =
+          await Conversation.create({
+            userId,
+
+            title:
+              trimmedQuestion
+                .length > 50
+                ? `${trimmedQuestion.slice(
+                    0,
+                    50
+                  )}...`
+                : trimmedQuestion,
+
+            document,
+
+            messages: [],
+          });
+      }
+
+      // ===================================
+      // SAVE USER MESSAGE
+      // ===================================
+
+      conversation.messages.push({
+        role: "user",
+
+        content:
+          trimmedQuestion,
       });
-    }
 
-    const trimmedQuestion =
-      question.trim();
+      // null = all documents belonging
+      // to the authenticated user.
+      conversation.document =
+        document || null;
 
-    // =====================================
-    // Find existing conversation
-    // or create a new conversation
-    // =====================================
+      await conversation.save();
 
-    let conversation = null;
+      // ===================================
+      // STREAMING HEADERS
+      // ===================================
 
-    if (conversationId) {
-      conversation =
-        await Conversation.findById(
-          conversationId
-        );
-    }
+      res.setHeader(
+        "Content-Type",
+        "text/plain; charset=utf-8"
+      );
 
-    if (!conversation) {
-      conversation =
-        await Conversation.create({
-          title:
-            trimmedQuestion.length > 50
-              ? `${trimmedQuestion.slice(
-                  0,
-                  50
-                )}...`
-              : trimmedQuestion,
+      res.setHeader(
+        "Cache-Control",
+        "no-cache"
+      );
+
+      res.setHeader(
+        "Connection",
+        "keep-alive"
+      );
+
+      res.flushHeaders();
+
+      // ===================================
+      // SEND CONVERSATION ID
+      // ===================================
+
+      res.write(
+        JSON.stringify({
+          type:
+            "conversation",
+
+          conversationId:
+            conversation._id,
+        }) + "\n"
+      );
+
+      // ===================================
+      // STREAM AI ANSWER
+      //
+      // IMPORTANT:
+      // Signature is now:
+      //
+      // streamQuestion(
+      //   question,
+      //   document,
+      //   userId,
+      //   onChunk
+      // )
+      // ===================================
+
+      let fullAnswer = "";
+
+      const result =
+        await streamQuestion(
+          trimmedQuestion,
 
           document,
 
-          messages: [],
-        });
-    }
+          userId,
 
-    // =====================================
-    // Save USER message
-    // =====================================
+          (chunk) => {
+            fullAnswer +=
+              chunk;
 
-    conversation.messages.push({
-      role: "user",
-      content: trimmedQuestion,
-    });
+            res.write(
+              JSON.stringify({
+                type:
+                  "token",
 
-    // Update active document mode
-    // null = All Documents
-    conversation.document =
-      document || null;
+                content:
+                  chunk,
+              }) + "\n"
+            );
+          }
+        );
 
-    await conversation.save();
+      // ===================================
+      // SAVE ASSISTANT MESSAGE
+      // ===================================
 
-    // =====================================
-    // Streaming headers
-    // =====================================
+      conversation.messages.push({
+        role:
+          "assistant",
 
-    res.setHeader(
-      "Content-Type",
-      "text/plain; charset=utf-8"
-    );
-
-    res.setHeader(
-      "Cache-Control",
-      "no-cache"
-    );
-
-    res.setHeader(
-      "Connection",
-      "keep-alive"
-    );
-
-    res.flushHeaders();
-
-    // IMPORTANT:
-    // Send conversation ID immediately.
-    // Frontend needs this for future messages.
-    res.write(
-      JSON.stringify({
-        type: "conversation",
-        conversationId:
-          conversation._id,
-      }) + "\n"
-    );
-
-    // =====================================
-    // Stream AI answer
-    // =====================================
-
-    let fullAnswer = "";
-
-    const result =
-      await streamQuestion(
-        trimmedQuestion,
-        document,
-
-        (chunk) => {
-          fullAnswer += chunk;
-
-          res.write(
-            JSON.stringify({
-              type: "token",
-              content: chunk,
-            }) + "\n"
-          );
-        }
-      );
-
-    // =====================================
-    // Save ASSISTANT message
-    // =====================================
-
-    conversation.messages.push({
-      role: "assistant",
-
-      content:
-        fullAnswer ||
-        "No response generated.",
-
-      sources:
-        result.sources || [],
-    });
-
-    await conversation.save();
-
-    // =====================================
-    // Keep old Chat history
-    // =====================================
-
-    const chat = await Chat.create({
-      question: trimmedQuestion,
-
-      answer: fullAnswer,
-
-      document,
-
-      sources:
-        result.sources || [],
-    });
-
-    // =====================================
-    // Send sources
-    // =====================================
-
-    res.write(
-      JSON.stringify({
-        type: "sources",
+        content:
+          fullAnswer ||
+          "No response generated.",
 
         sources:
-          result.sources || [],
-      }) + "\n"
-    );
-
-    // =====================================
-    // Signal completion
-    // =====================================
-
-    res.write(
-      JSON.stringify({
-        type: "done",
-
-        chatId:
-          chat._id,
-
-        conversationId:
-          conversation._id,
-      }) + "\n"
-    );
-
-    res.end();
-  } catch (error) {
-    console.error(
-      "Streaming chat error:",
-      error
-    );
-
-    if (!res.headersSent) {
-      return res.status(500).json({
-        success: false,
-
-        message:
-          error.message ||
-          "Failed to process chat request.",
+          result.sources ||
+          [],
       });
+
+      await conversation.save();
+
+      // ===================================
+      // SAVE USER-OWNED CHAT HISTORY
+      // ===================================
+
+      const chat =
+        await Chat.create({
+          userId,
+
+          question:
+            trimmedQuestion,
+
+          answer:
+            fullAnswer,
+
+          document,
+
+          sources:
+            result.sources ||
+            [],
+        });
+
+      // ===================================
+      // SEND SOURCES
+      // ===================================
+
+      res.write(
+        JSON.stringify({
+          type:
+            "sources",
+
+          sources:
+            result.sources ||
+            [],
+        }) + "\n"
+      );
+
+      // ===================================
+      // SIGNAL COMPLETION
+      // ===================================
+
+      res.write(
+        JSON.stringify({
+          type:
+            "done",
+
+          chatId:
+            chat._id,
+
+          conversationId:
+            conversation._id,
+        }) + "\n"
+      );
+
+      res.end();
+    } catch (error) {
+      console.error(
+        "Streaming chat error:",
+        error
+      );
+
+      if (
+        !res.headersSent
+      ) {
+        return res
+          .status(500)
+          .json({
+            success: false,
+
+            message:
+              error.message ||
+              "Failed to process chat request.",
+          });
+      }
+
+      res.write(
+        JSON.stringify({
+          type:
+            "error",
+
+          message:
+            error.message ||
+            "Failed to process chat request.",
+        }) + "\n"
+      );
+
+      res.end();
     }
-
-    res.write(
-      JSON.stringify({
-        type: "error",
-
-        message:
-          error.message ||
-          "Failed to process chat request.",
-      }) + "\n"
-    );
-
-    res.end();
-  }
-};
+  };
 
 module.exports = {
   chatWithDocument,

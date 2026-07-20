@@ -1,13 +1,48 @@
-const express = require("express");
-const router = express.Router();
+const express = require(
+  "express"
+);
+
+const router =
+  express.Router();
+
+const {
+  requireAuthentication,
+} = require(
+  "../middleware/auth.middleware"
+);
 
 const {
   listDocuments,
   removeDocument,
-} = require("../controllers/document.controller");
+} = require(
+  "../controllers/document.controller"
+);
 
-router.get("/", listDocuments);
+// ========================================
+// ALL DOCUMENT ROUTES REQUIRE LOGIN
+// ========================================
 
-router.delete("/:name", removeDocument);
+router.use(
+  requireAuthentication
+);
 
-module.exports = router;
+// ========================================
+// GET LOGGED-IN USER'S DOCUMENTS
+// ========================================
+
+router.get(
+  "/",
+  listDocuments
+);
+
+// ========================================
+// DELETE LOGGED-IN USER'S DOCUMENT
+// ========================================
+
+router.delete(
+  "/:name",
+  removeDocument
+);
+
+module.exports =
+  router;
