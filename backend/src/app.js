@@ -36,7 +36,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://ibm-8ticb8yjb-error409.vercel.app",
+      "https://ibm-peach.vercel.app",
     ],
     methods: [
       "GET",
