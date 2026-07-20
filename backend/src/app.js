@@ -25,26 +25,31 @@ const allowedOrigins = [
   // Local Docker frontend
   "http://localhost:3000",
 
-  // Production frontend URL
-  // Will be configured when deployed to AWS
+  // Old Vercel domain
+  // Keep temporarily because it redirects
+  "https://ibm-peach.vercel.app",
+
+  // Current production frontend
+  "https://ibm-ai-research-assistant.vercel.app",
+
+  // Optional frontend URL from environment variable
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
 // Enable CORS
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
-      "https://ibm-peach.vercel.app",
-    ],
+    origin: allowedOrigins,
+
     methods: [
       "GET",
       "POST",
       "PUT",
       "PATCH",
       "DELETE",
+      "OPTIONS",
     ],
+
     allowedHeaders: [
       "Content-Type",
       "Authorization",
