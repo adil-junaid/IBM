@@ -1,4 +1,5 @@
 const API_URL =
+  import.meta.env.VITE_API_URL ||
   "http://localhost:5001";
 
 /**
@@ -100,7 +101,8 @@ export const streamMessage = async (
       }
 
       if (
-        data.type === "conversation"
+        data.type ===
+        "conversation"
       ) {
         onConversation?.(
           data.conversationId
@@ -143,7 +145,6 @@ export const streamMessage = async (
   }
 };
 
-
 /**
  * Get all conversations.
  */
@@ -162,7 +163,6 @@ export const getConversations =
     return response.json();
   };
 
-
 /**
  * Get one conversation.
  */
@@ -180,7 +180,6 @@ export const getConversation =
 
     return response.json();
   };
-
 
 /**
  * Delete conversation.
@@ -203,7 +202,6 @@ export const deleteConversation =
     return response.json();
   };
 
-
 /**
  * Clear messages in a conversation.
  */
@@ -225,7 +223,7 @@ export const clearConversation =
     return response.json();
   };
 
-  /**
+/**
  * Edit a user message and regenerate
  * the AI response.
  */
