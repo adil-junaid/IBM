@@ -4,10 +4,9 @@ const Document = require(
   "../models/document.model"
 );
 
-const {
-  deleteVectorStore,
-} = require("../ai/vectorStore");
-
+const DocumentChunk = require(
+  "../models/documentChunk.model"
+);
 
 // ========================================
 // GET ALL UPLOADED DOCUMENTS
@@ -48,7 +47,6 @@ const listDocuments = async (
   }
 };
 
-
 // ========================================
 // DELETE DOCUMENT
 // ========================================
@@ -85,15 +83,17 @@ const removeDocument = async (
     }
 
     // ====================================
-    // Remove vector store
+    // Delete document chunks and
+    // embeddings from MongoDB Atlas
     // ====================================
 
-    deleteVectorStore(
-      document.originalName
-    );
+    await DocumentChunk.deleteMany({
+      source:
+        document.originalName,
+    });
 
     // ====================================
-    // Delete physical file
+    // Delete physical file if it exists
     // ====================================
 
     if (
@@ -117,7 +117,7 @@ const removeDocument = async (
     }
 
     // ====================================
-    // Delete MongoDB record
+    // Delete document metadata record
     // ====================================
 
     await Document.findByIdAndDelete(
@@ -145,7 +145,6 @@ const removeDocument = async (
     });
   }
 };
-
 
 module.exports = {
   listDocuments,
