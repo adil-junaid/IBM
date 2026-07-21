@@ -1,31 +1,45 @@
 # 📚 AI Research & Document Assistant
 
+**Project Title:** AI-Powered Multi-Document Research Assistant Using Retrieval-Augmented Generation (RAG)  
+**Application Name:** AI Research & Document Assistant  
+**Program:** IBM 6-Week Internship Project  
+**Team Members:** Adil Junaid & Safeena KS
+
 An AI-powered **Research and Document Assistant** built using **Retrieval-Augmented Generation (RAG)**.
 
 The application allows authenticated users to upload research documents and interact with their content through an AI-powered chat interface.
 
 Documents are parsed, split into chunks, converted into vector embeddings, and stored persistently in MongoDB Atlas. When a user asks a question, the application retrieves relevant document chunks and provides them as context to a hosted Large Language Model (LLM).
 
-The system supports secure multi-user authentication, isolated document storage, multi-document research, document-specific querying, persistent conversations, source references, and real-time streaming AI responses.
+The system supports secure multi-user authentication, isolated document storage, multi-document research, document-specific querying, persistent conversations, source references, real-time streaming AI responses, and a responsive desktop/mobile interface.
 
 ---
 
 # 🌐 Live Application
 
-The application is deployed and available online:
+The application is publicly deployed and available online.
 
-**Live Demo:**
+### Primary AWS Deployment
+
+**AWS Amplify (Submission URL):**
+
+https://main.d1cgcqgtcum16d.amplifyapp.com
+
+### Alternative Frontend Deployment
+
+**Vercel:**
 
 https://ibm-ai-research-assistant.vercel.app
 
 ### Production Architecture
 
-- **Frontend:** Vercel
+- **Primary Frontend:** AWS Amplify
+- **Alternative Frontend:** Vercel
 - **Backend:** Render
 - **Authentication:** Clerk
 - **Database:** MongoDB Atlas
-- **LLM:** Groq API
-- **Embeddings:** Hugging Face Inference API
+- **LLM:** Groq API (`llama-3.1-8b-instant`)
+- **Embeddings:** Hugging Face Inference API (`sentence-transformers/all-MiniLM-L6-v2`)
 
 ---
 
@@ -150,7 +164,7 @@ Each conversation belongs only to the authenticated user who created it.
                      ┌────────────────────────┐
                      │      React Frontend    │
                      │   Vite + Tailwind CSS  │
-                     │       on Vercel        │
+                     │    on AWS Amplify      │
                      └────────────┬───────────┘
                                   │
                                   ▼
@@ -791,13 +805,13 @@ uploads/
 
 # 🚀 Production Deployment
 
-The application is deployed using the following architecture:
+The application uses AWS Amplify as the primary frontend deployment for the IBM internship submission while retaining the existing Vercel frontend deployment.
 
 ```text
                     User
                       │
                       ▼
-             Vercel Frontend
+          AWS Amplify Frontend
                       │
                       ▼
              Clerk Authentication
@@ -817,13 +831,15 @@ The application is deployed using the following architecture:
 
 ## Frontend
 
-Hosted on Vercel.
+### AWS Amplify — Primary Deployment
 
-Production URL:
+Primary production/submission URL:
 
 ```text
-https://ibm-ai-research-assistant.vercel.app
+https://main.d1cgcqgtcum16d.amplifyapp.com
 ```
+
+The AWS Amplify frontend is connected to the project repository and uses the same Render backend and Clerk authentication configuration.
 
 Required frontend environment variables:
 
@@ -832,9 +848,18 @@ VITE_API_URL=your_render_backend_url
 VITE_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 ```
 
+The AWS Amplify origin is included in the backend CORS configuration.
+
+### Vercel — Alternative Deployment
+
+The original Vercel deployment remains active:
+
+```text
+https://ibm-ai-research-assistant.vercel.app
+```
+
 The project includes `vercel.json` to support React Router SPA routing on Vercel.
 
----
 
 ## Backend
 
@@ -853,7 +878,7 @@ HF_TOKEN=your_hugging_face_token
 CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
 CLERK_SECRET_KEY=your_clerk_secret_key
 
-FRONTEND_URL=https://ibm-ai-research-assistant.vercel.app
+FRONTEND_URL=https://main.d1cgcqgtcum16d.amplifyapp.com
 ```
 
 Production secrets should be configured through the hosting platform's environment-variable settings and must never be committed to GitHub.
@@ -896,6 +921,11 @@ Production secrets should be configured through the hosting platform's environme
 - [x] Render backend deployment
 - [x] Production cloud deployment
 - [x] Vercel SPA routing support
+- [x] AWS Amplify frontend deployment
+- [x] AWS Amplify to Render CORS configuration
+- [x] Responsive mobile sidebar with hamburger navigation
+- [x] Physical mobile-device testing
+- [x] Desktop and mobile production verification
 
 ## 🔮 Future Improvements
 
@@ -954,16 +984,23 @@ For larger production deployments, the retrieval layer can be upgraded to MongoD
 
 # 👥 Team
 
-This project includes work across:
+### Team Members
+
+- **Adil Junaid**
+- **Safeena KS**
+
+This project was developed as part of the **IBM 6-Week Internship Project**.
+
+The team worked across:
 
 - Frontend Development
 - Backend Development
 - AI / RAG Integration
-- Authentication & Security
+- Authentication & Multi-User Security
 - Database Integration
-- UI/UX Design
+- UI/UX and Responsive Design
 - Containerization
-- Cloud Deployment
+- AWS / Cloud Deployment
 
 ---
 
