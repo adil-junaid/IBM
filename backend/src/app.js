@@ -50,10 +50,13 @@ const allowedOrigins = [
   // Old Vercel domain
   "https://ibm-peach.vercel.app",
 
-  // Current production frontend
+  // Current Vercel production frontend
   "https://ibm-ai-research-assistant.vercel.app",
 
-  // Optional frontend URL
+  // AWS Amplify production frontend
+  "https://main.d1cgcqgtcum16d.amplifyapp.com",
+
+  // Optional frontend URL from environment
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
@@ -135,25 +138,25 @@ app.use(
   uploadRoutes
 );
 
-// Authentication will be added next
+// Authentication handled by route middleware
 app.use(
   "/api/chat",
   chatRoutes
 );
 
-// Authentication will be added next
+// Authentication handled by route middleware
 app.use(
   "/api/documents",
   documentRoutes
 );
 
-// Authentication will be added next
+// Authentication handled by route middleware
 app.use(
   "/api/history",
   historyRoutes
 );
 
-// Authentication will be added next
+// Authentication handled by route middleware
 app.use(
   "/api/conversations",
   conversationRoutes
